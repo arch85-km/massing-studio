@@ -116,15 +116,15 @@ export class Scene3D {
     this.modelGroup.clear();
     this.meshByShape.clear();
 
-    for (const shape of state.shapes) {
+    state.shapes.forEach((shape, index) => {
       const layer = state.layers.find((l) => l.id === shape.layerId);
-      if (!layer || !layer.visible) continue;
-      const mesh = this._buildMesh(shape, layer);
-      if (!mesh) continue;
+      if (!layer || !layer.visible) return;
+      const mesh = this._buildMesh(shape, layer, null, index);
+      if (!mesh) return;
       mesh.userData.shapeId = shape.id;
       this.modelGroup.add(mesh);
       this.meshByShape.set(shape.id, mesh);
-    }
+    });
 
     // controls target: keep looking near model center on first build
     if (!this._targetedOnce && state.shapes.length) {
@@ -133,13 +133,17 @@ export class Scene3D {
     }
   }
 
-  _buildMesh(shape, layer, heightOverride = null) {
+  _buildMesh(shape, layer, heightOverride = null, epsilonIndex = 0) {
     const height = Math.max(heightOverride ?? shape.height ?? 0, 0);
     const selected = this.store.state.selection.includes(shape.id);
+    // Nudge each shape's elevation by a tiny per-shape amount so two shapes
+    // that share a floor and height never land on the exact same Y — that
+    // coincidence causes z-fighting (flickering hatched overlap) on the GPU.
+    const yEpsilon = epsilonIndex * 0.0005;
 
     if (!shape.closed) {
       if (shape.type !== 'line' || shape.points.length < 2) return null;
-      const pts = shape.points.map((p) => new THREE.Vector3(p.x, layer.elevation + 0.02, -p.y));
+      const pts = shape.points.map((p) => new THREE.Vector3(p.x, layer.elevation + 0.02 + yEpsilon, -p.y));
       const geo = new THREE.BufferGeometry().setFromPoints(pts);
       const mat = new THREE.LineBasicMaterial({ color: selected ? 0xffffff : shape.color });
       return new THREE.Line(geo, mat);
@@ -168,7 +172,7 @@ export class Scene3D {
     });
 
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.y = layer.elevation;
+    mesh.position.y = layer.elevation + yEpsilon;
     mesh.castShadow = height > 0;
     mesh.receiveShadow = true;
 
@@ -242,7 +246,8 @@ export class Scene3D {
     const deltaY = point.y - this.pushPull.grabPoint.y;
     const newHeight = Math.max(0, Math.round((this.pushPull.startHeight + deltaY) * 100) / 100);
 
-    const shape = this.store.state.shapes.find((s) => s.id === this.pushPull.shapeId);
+    const shapeIndex = this.store.state.shapes.findIndex((s) => s.id === this.pushPull.shapeId);
+    const shape = this.store.state.shapes[shapeIndex];
     const layer = this.store.state.layers.find((l) => l.id === shape.layerId);
     if (!shape) return;
     shape.height = newHeight;
@@ -250,7 +255,7 @@ export class Scene3D {
     if (mesh) {
       this.modelGroup.remove(mesh);
       this._disposeMesh(mesh);
-      const rebuilt = this._buildMesh(shape, layer);
+      const rebuilt = this._buildMesh(shape, layer, null, shapeIndex);
       rebuilt.userData.shapeId = shape.id;
       this.modelGroup.add(rebuilt);
       this.meshByShape.set(shape.id, rebuilt);
