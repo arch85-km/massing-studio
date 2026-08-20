@@ -97,8 +97,10 @@ exportToggle.onclick = (e) => {
   exportToggle.setAttribute('aria-expanded', String(isOpen));
 };
 exportMenu.addEventListener('click', (e) => e.stopPropagation());
+
+// Closes any open dropdown (export menu, color picker, …) on an outside click.
 window.addEventListener('click', () => {
-  exportMenu.classList.remove('open');
+  document.querySelectorAll('.dropdown-menu.open').forEach((m) => m.classList.remove('open'));
   exportToggle.setAttribute('aria-expanded', 'false');
 });
 
@@ -147,6 +149,90 @@ function downloadDataUrl(dataUrl, filename) {
 }
 
 // ---------------- properties panel ----------------
+const SWATCH_COLORS = ['#4fa3ff', '#ff9d4f', '#57d38c', '#c98bff', '#ff6b6b', '#f4d35e', '#93a1b3', '#ffffff'];
+
+// A CSS-positioned dropdown instead of a native <input type="color"> —
+// the native color picker's popup placement is decided by the browser and
+// isn't something CSS/JS can reliably control, so it can open upward and
+// clip against the top of the window. This one is anchored to the swatch
+// button with `.dropdown-menu`'s own positioning, so it always renders in
+// the same predictable spot below-and-left of the button.
+function buildColorRow(shape) {
+  const row = document.createElement('div');
+  row.className = 'props-row';
+
+  const label = document.createElement('span');
+  label.textContent = 'Color';
+  row.appendChild(label);
+
+  const dropdown = document.createElement('div');
+  dropdown.className = 'dropdown';
+
+  const swatchBtn = document.createElement('button');
+  swatchBtn.type = 'button';
+  swatchBtn.className = 'color-swatch-btn';
+  swatchBtn.style.background = shape.color;
+  swatchBtn.title = shape.color;
+  swatchBtn.setAttribute('aria-haspopup', 'true');
+  swatchBtn.setAttribute('aria-expanded', 'false');
+
+  const menu = document.createElement('div');
+  menu.className = 'dropdown-menu color-menu';
+  menu.setAttribute('role', 'menu');
+
+  const grid = document.createElement('div');
+  grid.className = 'swatch-grid';
+  SWATCH_COLORS.forEach((c) => {
+    const opt = document.createElement('button');
+    opt.type = 'button';
+    opt.className = 'swatch-option' + (c.toLowerCase() === shape.color.toLowerCase() ? ' active' : '');
+    opt.style.background = c;
+    opt.title = c;
+    opt.onclick = () => {
+      store.updateShape(shape.id, { color: c });
+      menu.classList.remove('open');
+    };
+    grid.appendChild(opt);
+  });
+  menu.appendChild(grid);
+
+  const hexRow = document.createElement('div');
+  hexRow.className = 'hex-row';
+  const hexLabel = document.createElement('label');
+  hexLabel.textContent = 'Hex';
+  const hexInput = document.createElement('input');
+  hexInput.type = 'text';
+  hexInput.className = 'hex-input';
+  hexInput.value = shape.color;
+  hexInput.maxLength = 7;
+  hexInput.placeholder = '#rrggbb';
+  hexInput.onclick = (e) => e.stopPropagation();
+  hexInput.onchange = () => {
+    let v = hexInput.value.trim();
+    if (v && !v.startsWith('#')) v = '#' + v;
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+      store.updateShape(shape.id, { color: v });
+    } else {
+      hexInput.value = shape.color;
+    }
+  };
+  hexRow.appendChild(hexLabel);
+  hexRow.appendChild(hexInput);
+  menu.appendChild(hexRow);
+
+  swatchBtn.onclick = (e) => {
+    e.stopPropagation();
+    const isOpen = menu.classList.toggle('open');
+    swatchBtn.setAttribute('aria-expanded', String(isOpen));
+  };
+  menu.addEventListener('click', (e) => e.stopPropagation());
+
+  dropdown.appendChild(swatchBtn);
+  dropdown.appendChild(menu);
+  row.appendChild(dropdown);
+  return row;
+}
+
 const propsPanel = document.getElementById('properties-panel');
 function renderProps() {
   const shape = store.state.shapes.find((s) => s.id === store.state.selection[0]);
@@ -168,15 +254,7 @@ function renderProps() {
   typeRow.innerHTML = `<span>Type</span><b>${shape.type}</b>`;
   body.appendChild(typeRow);
 
-  const colorRow = document.createElement('label');
-  colorRow.className = 'props-row';
-  colorRow.innerHTML = `<span>Color</span>`;
-  const colorInput = document.createElement('input');
-  colorInput.type = 'color';
-  colorInput.value = shape.color;
-  colorInput.onchange = () => store.updateShape(shape.id, { color: colorInput.value });
-  colorRow.appendChild(colorInput);
-  body.appendChild(colorRow);
+  body.appendChild(buildColorRow(shape));
 
   if (shape.closed) {
     const heightRow = document.createElement('label');
