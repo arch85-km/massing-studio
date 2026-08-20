@@ -271,6 +271,26 @@ input[type="color"] {
   font-variant-numeric: tabular-nums;
 }
 
+/* ---------------- imported reference models panel ---------------- */
+.imported-list { display: flex; flex-direction: column; gap: 4px; }
+.imported-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 5px 7px;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.imported-name {
+  min-width: 0;
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ---------------- properties panel ---------------- */
 .props-body { display: flex; flex-direction: column; gap: 8px; }
 .props-row {

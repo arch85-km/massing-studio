@@ -28,6 +28,9 @@ function initialState() {
     activeLayerId: groundFloor.id,
     shapes: [],
     selection: [],
+    images: [],           // { id, x, y, width, height, opacity } — pixel data lives in store.imageAssets
+    importedModels: [],   // { id, name } — raw .obj text lives in store.modelAssets
+    selectedImageId: null,
     tool: 'select',
     grid: { size: 1, snap: true, majorEvery: 5 },
     view: 'split', // 'split' | '2d' | '3d'
@@ -42,6 +45,15 @@ export class Store {
     this.undoStack = [];
     this.redoStack = [];
     this._suppressHistory = false;
+    // Imported binary/text assets, keyed by id. Kept OUT of `state` on purpose:
+    // undo/redo snapshots JSON.stringify the whole state on every edit, and an
+    // embedded image data URL or a large .obj would get duplicated into every
+    // snapshot. These maps are append-only for the session (never explicitly
+    // deleted on removal) so undo/redo of an add/remove always finds the data
+    // it needs — only the visible `state.images` / `state.importedModels`
+    // arrays control what's actually shown.
+    this.imageAssets = new Map();
+    this.modelAssets = new Map();
   }
 
   onChange(fn) {
@@ -139,14 +151,67 @@ export class Store {
     this.notify();
   }
 
+  // Adds many shapes (e.g. a DXF import) as a single undo step.
+  addShapes(shapes) {
+    this.snapshot();
+    this.state.shapes.push(...shapes);
+    this.notify();
+  }
+
   setSelection(ids) {
     this.state.selection = ids;
+    this.state.selectedImageId = null;
     this.notify();
   }
 
   setTool(tool) {
     this.state.tool = tool;
     this.state.selection = [];
+    this.state.selectedImageId = null;
+    this.notify();
+  }
+
+  // ---- reference images (2D plan underlay) ----
+  addImage(image, dataUrl) {
+    this.snapshot();
+    this.imageAssets.set(image.id, dataUrl);
+    this.state.images.push(image);
+    this.state.selectedImageId = image.id;
+    this.state.selection = [];
+    this.notify();
+  }
+
+  updateImage(imageId, patch, { history = true } = {}) {
+    if (history) this.snapshot();
+    const img = this.state.images.find((im) => im.id === imageId);
+    if (img) Object.assign(img, patch);
+    this.notify();
+  }
+
+  removeImage(imageId) {
+    this.snapshot();
+    this.state.images = this.state.images.filter((im) => im.id !== imageId);
+    if (this.state.selectedImageId === imageId) this.state.selectedImageId = null;
+    this.notify();
+  }
+
+  setSelectedImage(imageId) {
+    this.state.selectedImageId = imageId;
+    this.state.selection = [];
+    this.notify();
+  }
+
+  // ---- imported 3D reference models (static, shown in the 3D view only) ----
+  addImportedModel(model, objText) {
+    this.snapshot();
+    this.modelAssets.set(model.id, objText);
+    this.state.importedModels.push(model);
+    this.notify();
+  }
+
+  removeImportedModel(modelId) {
+    this.snapshot();
+    this.state.importedModels = this.state.importedModels.filter((m) => m.id !== modelId);
     this.notify();
   }
 
@@ -167,6 +232,11 @@ export class Store {
     this.state.activeLayerId = ground.id;
     this.state.shapes = [];
     this.state.selection = [];
+    this.state.images = [];
+    this.state.importedModels = [];
+    this.state.selectedImageId = null;
+    this.imageAssets.clear();
+    this.modelAssets.clear();
     this.notify();
   }
 

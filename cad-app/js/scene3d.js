@@ -4,6 +4,7 @@
 import * as THREE from '../vendor/three/three.module.js';
 import { OrbitControls } from '../vendor/three/controls/OrbitControls.js';
 import { OBJExporter } from '../vendor/three/exporters/OBJExporter.js';
+import { OBJLoader } from '../vendor/three/loaders/OBJLoader.js';
 import { shapePoints } from './geometry.js';
 
 const FLAT_PREVIEW_DEPTH = 0.02; // visual thickness for un-extruded (height=0) footprints
@@ -38,6 +39,13 @@ export class Scene3D {
     this.modelGroup = new THREE.Group();
     this.scene.add(this.modelGroup);
     this.meshByShape = new Map();
+
+    // Imported .obj reference models — a separate group so they're never
+    // picked up by push/pull raycasting, OBJ export, or the drawn-shape mesh
+    // lifecycle; they're static context, not editable geometry.
+    this.importedGroup = new THREE.Group();
+    this.scene.add(this.importedGroup);
+    this.importedMeshCache = new Map(); // model id -> parsed Object3D
 
     this.raycaster = new THREE.Raycaster();
     this.pointer = new THREE.Vector2();
@@ -126,10 +134,56 @@ export class Scene3D {
       this.meshByShape.set(shape.id, mesh);
     });
 
+    this._syncImportedModels(state.importedModels);
+
     // controls target: keep looking near model center on first build
     if (!this._targetedOnce && state.shapes.length) {
       this._targetedOnce = true;
       this.controls.target.set(0, 1.2, 0);
+    }
+  }
+
+  // Adds/removes parsed .obj Object3Ds to match state.importedModels,
+  // parsing each model's text only once (cached by id) rather than on
+  // every store change.
+  _syncImportedModels(models) {
+    const currentIds = new Set(models.map((m) => m.id));
+
+    for (const [id, obj] of this.importedMeshCache) {
+      if (currentIds.has(id)) continue;
+      this.importedGroup.remove(obj);
+      obj.traverse((child) => {
+        child.geometry?.dispose();
+        if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+        else child.material?.dispose();
+      });
+      this.importedMeshCache.delete(id);
+    }
+
+    for (const model of models) {
+      if (this.importedMeshCache.has(model.id)) continue;
+      const text = this.store.modelAssets.get(model.id);
+      if (!text) continue;
+      try {
+        const obj = new OBJLoader().parse(text);
+        obj.traverse((child) => {
+          if (!child.isMesh) return;
+          child.material = new THREE.MeshStandardMaterial({
+            color: 0x8a97a8,
+            roughness: 0.85,
+            metalness: 0.05,
+            transparent: true,
+            opacity: 0.85,
+            side: THREE.DoubleSide,
+          });
+          child.castShadow = false;
+          child.receiveShadow = true;
+        });
+        this.importedGroup.add(obj);
+        this.importedMeshCache.set(model.id, obj);
+      } catch (err) {
+        console.warn(`Failed to parse imported model "${model.name}":`, err);
+      }
     }
   }
 
@@ -272,8 +326,14 @@ export class Scene3D {
   }
 
   // ---------------- camera helpers ----------------
-  frameAll() {
+  _sceneBounds() {
     const box = new THREE.Box3().setFromObject(this.modelGroup);
+    box.union(new THREE.Box3().setFromObject(this.importedGroup));
+    return box;
+  }
+
+  frameAll() {
+    const box = this._sceneBounds();
     if (box.isEmpty()) return;
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
@@ -284,8 +344,7 @@ export class Scene3D {
   }
 
   setView(preset) {
-    const state = this.store.state;
-    const box = new THREE.Box3().setFromObject(this.modelGroup);
+    const box = this._sceneBounds();
     const center = box.isEmpty() ? new THREE.Vector3(0, 0, 0) : box.getCenter(new THREE.Vector3());
     const size = box.isEmpty() ? new THREE.Vector3(10, 10, 10) : box.getSize(new THREE.Vector3());
     const d = Math.max(size.x, size.y, size.z, 8) * 1.8;
@@ -330,9 +389,12 @@ export class Scene3D {
     return this.renderer.domElement.toDataURL('image/png');
   }
 
-  // Export the 2D plan as a minimal ASCII DXF (R12-compatible LINE/CIRCLE
-  // entities on layer "0") — every shape's footprint, not just extruded
-  // solids, since a DXF is a drawing, not a 3D model.
+  // Export the 2D plan as an ASCII DXF — every shape's footprint, not just
+  // extruded solids, since a DXF is a drawing, not a 3D model. Circles export
+  // as CIRCLE entities; every other shape as a single LWPOLYLINE (one entity
+  // per shape, not exploded into separate LINE segments) so re-importing the
+  // file reconstructs the same shapes 1:1, and so real CAD software reads it
+  // as connected polylines rather than a pile of disconnected lines.
   exportDXF() {
     const lines = [];
     const emit = (code, value) => { lines.push(String(code)); lines.push(String(value)); };
@@ -351,15 +413,11 @@ export class Scene3D {
 
       const pts = shapePoints(shape);
       if (pts.length < 2) continue;
-      const segments = shape.closed ? pts.length : pts.length - 1;
-      for (let i = 0; i < segments; i++) {
-        const a = pts[i];
-        const b = pts[(i + 1) % pts.length];
-        emit(0, 'LINE');
-        emit(8, '0');
-        emit(10, a.x); emit(20, a.y); emit(30, 0);
-        emit(11, b.x); emit(21, b.y); emit(31, 0);
-      }
+      emit(0, 'LWPOLYLINE');
+      emit(8, '0');
+      emit(90, pts.length);
+      emit(70, shape.closed ? 1 : 0);
+      for (const p of pts) { emit(10, p.x); emit(20, p.y); }
     }
 
     emit(0, 'ENDSEC');

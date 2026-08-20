@@ -22,11 +22,13 @@ export class Plan2D {
 
     this.drawPoints = null;     // in-progress polygon/line points (world)
     this.dragStart = null;      // world point where a mousedown began
-    this.dragMode = null;       // 'move' | 'scale' | 'rect' | 'circle' | 'pan'
+    this.dragMode = null;       // 'move' | 'scale' | 'rect' | 'circle' | 'pan' | 'move-image'
     this.dragShapeSnapshot = null;
+    this.dragImageSnapshot = null;
     this.cursorWorld = { x: 0, y: 0 };
     this.snapPointActive = null;
     this.spaceDown = false;
+    this._imageEls = new Map(); // image id -> <img> element, cached across renders
 
     this._bind();
     this._resize();
@@ -172,9 +174,26 @@ export class Plan2D {
       this.dragMode = 'move';
       this.dragStart = world;
       this.dragShapeSnapshot = JSON.parse(JSON.stringify(hit));
-    } else {
-      this.store.setSelection([]);
+      return;
     }
+
+    const imgHit = [...state.images].reverse().find((img) => this._imageContains(img, world));
+    if (imgHit) {
+      this.store.setSelectedImage(imgHit.id);
+      this.store.snapshot(); // one undo step for the whole drag
+      this.dragMode = 'move-image';
+      this.dragStart = world;
+      this.dragImageSnapshot = { id: imgHit.id, x: imgHit.x, y: imgHit.y };
+      return;
+    }
+
+    this.store.setSelection([]);
+    this.store.setSelectedImage(null);
+  }
+
+  _imageContains(img, world) {
+    return world.x >= img.x - img.width / 2 && world.x <= img.x + img.width / 2 &&
+           world.y >= img.y - img.height / 2 && world.y <= img.y + img.height / 2;
   }
 
   _handleAtPoint(shape, world) {
@@ -217,6 +236,17 @@ export class Plan2D {
       const factor = this._scaleFactor(world);
       const patch = this._scaledPatch(this.dragShapeSnapshot, factor);
       this.store.updateShape(this.dragShapeSnapshot.id, patch, { history: false });
+      this._emitStatus();
+      return;
+    }
+
+    if (this.dragMode === 'move-image' && this.dragImageSnapshot) {
+      const dx = world.x - this.dragStart.x;
+      const dy = world.y - this.dragStart.y;
+      this.store.updateImage(this.dragImageSnapshot.id, {
+        x: this.dragImageSnapshot.x + dx,
+        y: this.dragImageSnapshot.y + dy,
+      }, { history: false });
       this._emitStatus();
       return;
     }
@@ -291,6 +321,7 @@ export class Plan2D {
     this.dragMode = null;
     this.dragStart = null;
     this.dragShapeSnapshot = null;
+    this.dragImageSnapshot = null;
     this.render();
   }
 
@@ -335,6 +366,8 @@ export class Plan2D {
   _deleteSelection() {
     if (this.store.state.selection.length) {
       this.store.removeShapes(this.store.state.selection);
+    } else if (this.store.state.selectedImageId) {
+      this.store.removeImage(this.store.state.selectedImageId);
     }
   }
 
@@ -356,10 +389,46 @@ export class Plan2D {
     ctx.fillRect(0, 0, r.width, r.height);
 
     this._drawGrid(r);
+    this._drawImages();
     this._drawShapes();
     this._drawInProgress();
     this._drawSelection();
     ctx.restore();
+  }
+
+  // ---------------- reference images ----------------
+  _getImageElement(img) {
+    let el = this._imageEls.get(img.id);
+    if (!el) {
+      const dataUrl = this.store.imageAssets.get(img.id);
+      el = new Image();
+      if (dataUrl) el.src = dataUrl;
+      el.onload = () => this.render();
+      this._imageEls.set(img.id, el);
+    }
+    return el;
+  }
+
+  _drawImages() {
+    const ctx = this.ctx;
+    for (const img of this.store.state.images) {
+      const el = this._getImageElement(img);
+      if (!el.complete || !el.naturalWidth) continue;
+      const topLeft = this.worldToScreen({ x: img.x - img.width / 2, y: img.y + img.height / 2 });
+      const w = img.width * this.zoom;
+      const h = img.height * this.zoom;
+      ctx.save();
+      ctx.globalAlpha = img.opacity ?? 0.6;
+      ctx.drawImage(el, topLeft.x, topLeft.y, w, h);
+      ctx.restore();
+      if (this.store.state.selectedImageId === img.id) {
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 4]);
+        ctx.strokeRect(topLeft.x, topLeft.y, w, h);
+        ctx.setLineDash([]);
+      }
+    }
   }
 
   _drawGrid(r) {
