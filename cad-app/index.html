@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Studio CAD — 2D to 3D Extrusion for Architecture Students</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230d1117'/%3E%3Cpath d='M20 70 L20 30 L50 15 L80 30 L80 70 L50 85 Z' fill='none' stroke='%234fa3ff' stroke-width='6'/%3E%3Cpath d='M20 30 L50 45 L80 30 M50 45 L50 85' fill='none' stroke='%234fa3ff' stroke-width='6'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header id="toolbar">
+    <div class="brand">
+      <span class="brand-mark">▚</span>
+      <div class="brand-text">
+        <strong>Studio CAD</strong>
+        <small>plan &rarr; extrude &rarr; export</small>
+      </div>
+    </div>
+
+    <div class="tool-group" role="group" aria-label="File">
+      <button id="btn-new" class="btn" title="New drawing">New</button>
+      <button id="btn-save" class="btn" title="Save project as JSON">Save</button>
+      <button id="btn-load" class="btn" title="Load a saved project">Open</button>
+      <input id="load-input" type="file" accept=".json,.cadproj.json" hidden />
+    </div>
+
+    <div class="tool-group" role="group" aria-label="Edit">
+      <button id="btn-undo" class="icon-btn" title="Undo (Ctrl+Z)">↶</button>
+      <button id="btn-redo" class="icon-btn" title="Redo (Ctrl+Shift+Z)">↷</button>
+    </div>
+
+    <div class="tool-group" role="group" aria-label="Draw tools">
+      <button class="btn" data-tool="select" title="Select / Move / Scale (V)">Select</button>
+      <button class="btn" data-tool="line" title="Reference line (L)">Line</button>
+      <button class="btn" data-tool="rect" title="Rectangle (R)">Rectangle</button>
+      <button class="btn" data-tool="circle" title="Circle (C)">Circle</button>
+      <button class="btn" data-tool="polygon" title="Polygon — click points, Enter/double-click to close (P)">Polygon</button>
+      <button class="btn" data-tool="pushpull" title="Push / Pull — drag a shape's top face in the 3D view to extrude (E)">Push/Pull</button>
+    </div>
+
+    <div class="tool-group" role="group" aria-label="Grid">
+      <label class="chk"><input id="toggle-snap" type="checkbox" /> Snap</label>
+      <label class="num-inline">Grid
+        <input id="grid-size" type="number" step="0.1" min="0.1" value="1" />m
+      </label>
+    </div>
+
+    <div class="tool-group" role="group" aria-label="View mode">
+      <button class="btn small" data-view="2d" title="Plan only">2D</button>
+      <button class="btn small" data-view="split" title="Split view">Split</button>
+      <button class="btn small" data-view="3d" title="Model only">3D</button>
+    </div>
+
+    <div class="tool-group grow-spacer"></div>
+
+    <div class="tool-group" role="group" aria-label="Export">
+      <button id="btn-export" class="btn primary" title="Export extruded solids as .obj">Export .obj</button>
+    </div>
+  </header>
+
+  <div id="workspace" data-view="split">
+    <aside id="sidebar">
+      <div id="layers-panel" class="panel"></div>
+      <div id="properties-panel" class="panel"></div>
+      <div class="panel" id="help-panel">
+        <div class="panel-header"><span>Quick Reference</span></div>
+        <ul class="help-list">
+          <li><b>Draw:</b> pick a tool, click in the plan view</li>
+          <li><b>Polygon:</b> click each vertex, Enter / double-click / click near start to close</li>
+          <li><b>Extrude:</b> set a height in Properties, or use Push/Pull in the 3D view</li>
+          <li><b>Floors:</b> add layers with an elevation to stack storeys</li>
+          <li><b>Pan:</b> space+drag or middle-mouse · <b>Zoom:</b> scroll</li>
+          <li><b>Orbit (3D):</b> left-drag · <b>Pan:</b> right-drag</li>
+        </ul>
+      </div>
+    </aside>
+
+    <main id="viewport-split">
+      <section id="pane-2d" class="pane">
+        <canvas id="canvas2d"></canvas>
+        <div class="pane-label">PLAN VIEW — 2D</div>
+      </section>
+
+      <section id="pane-3d" class="pane">
+        <canvas id="canvas3d"></canvas>
+        <div class="pane-label">MODEL — 3D</div>
+        <div class="cam-buttons">
+          <button id="cam-top" class="icon-btn small" title="Top view">Top</button>
+          <button id="cam-front" class="icon-btn small" title="Front view">Front</button>
+          <button id="cam-iso" class="icon-btn small" title="Isometric view">Iso</button>
+          <button id="cam-fit" class="icon-btn small" title="Frame all (F)">Fit</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer id="statusbar">
+    <span id="status-tool">Select</span>
+    <span class="sep">·</span>
+    <span id="status-coords">x 0.00m, y 0.00m</span>
+    <span class="sep">·</span>
+    <span id="status-count">0 shapes</span>
+    <span class="grow-spacer"></span>
+    <span class="units-label">units: meters</span>
+  </footer>
+
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three/three.module.js" } }
+  </script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
