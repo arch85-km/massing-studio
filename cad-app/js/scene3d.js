@@ -14,7 +14,7 @@ export class Scene3D {
     this.store = store;
     this.onStatus = onStatus || (() => {});
 
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true });
     this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -317,5 +317,48 @@ export class Scene3D {
     if (!exportGroup.children.length) return null;
     exportGroup.updateMatrixWorld(true);
     return exporter.parse(exportGroup);
+  }
+
+  // Snapshot the current 3D view as a PNG data URL.
+  exportPNG() {
+    this.renderer.render(this.scene, this.camera); // ensure the buffer holds a fresh frame
+    return this.renderer.domElement.toDataURL('image/png');
+  }
+
+  // Export the 2D plan as a minimal ASCII DXF (R12-compatible LINE/CIRCLE
+  // entities on layer "0") — every shape's footprint, not just extruded
+  // solids, since a DXF is a drawing, not a 3D model.
+  exportDXF() {
+    const lines = [];
+    const emit = (code, value) => { lines.push(String(code)); lines.push(String(value)); };
+
+    emit(0, 'SECTION');
+    emit(2, 'ENTITIES');
+
+    for (const shape of this.store.state.shapes) {
+      if (shape.type === 'circle') {
+        emit(0, 'CIRCLE');
+        emit(8, '0');
+        emit(10, shape.center.x); emit(20, shape.center.y); emit(30, 0);
+        emit(40, shape.radius);
+        continue;
+      }
+
+      const pts = shapePoints(shape);
+      if (pts.length < 2) continue;
+      const segments = shape.closed ? pts.length : pts.length - 1;
+      for (let i = 0; i < segments; i++) {
+        const a = pts[i];
+        const b = pts[(i + 1) % pts.length];
+        emit(0, 'LINE');
+        emit(8, '0');
+        emit(10, a.x); emit(20, a.y); emit(30, 0);
+        emit(11, b.x); emit(21, b.y); emit(31, 0);
+      }
+    }
+
+    emit(0, 'ENDSEC');
+    emit(0, 'EOF');
+    return lines.join('\n') + '\n';
   }
 }

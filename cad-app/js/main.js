@@ -4,7 +4,6 @@
 import { Store, nextId } from './state.js';
 import { Plan2D } from './canvas2d.js';
 import { Scene3D } from './scene3d.js';
-import { LayersPanel } from './layers-ui.js';
 
 const store = new Store();
 
@@ -14,7 +13,6 @@ const plan2d = new Plan2D(document.getElementById('canvas2d'), store, {
 const scene3d = new Scene3D(document.getElementById('canvas3d'), store, {
   onStatus: (s) => updateStatus(s),
 });
-new LayersPanel(document.getElementById('layers-panel'), store);
 
 // ---------------- toolbar: tools ----------------
 const toolButtons = document.querySelectorAll('[data-tool]');
@@ -90,14 +88,41 @@ loadInput.onchange = () => {
   loadInput.value = '';
 };
 
-// ---------------- export .obj ----------------
-document.getElementById('btn-export').onclick = () => {
+// ---------------- export dropdown ----------------
+const exportToggle = document.getElementById('btn-export-toggle');
+const exportMenu = document.getElementById('export-menu');
+exportToggle.onclick = (e) => {
+  e.stopPropagation();
+  const isOpen = exportMenu.classList.toggle('open');
+  exportToggle.setAttribute('aria-expanded', String(isOpen));
+};
+exportMenu.addEventListener('click', (e) => e.stopPropagation());
+window.addEventListener('click', () => {
+  exportMenu.classList.remove('open');
+  exportToggle.setAttribute('aria-expanded', 'false');
+});
+
+document.getElementById('btn-export-obj').onclick = () => {
   const obj = scene3d.exportOBJ();
   if (!obj) {
     alert('Nothing to export yet — draw a shape and give it a height above 0 first.');
     return;
   }
   downloadText(obj, 'model.obj', 'text/plain');
+};
+
+document.getElementById('btn-export-png').onclick = () => {
+  const dataUrl = scene3d.exportPNG();
+  downloadDataUrl(dataUrl, 'model.png');
+};
+
+document.getElementById('btn-export-dxf').onclick = () => {
+  if (!store.state.shapes.length) {
+    alert('Nothing to export yet — draw a shape first.');
+    return;
+  }
+  const dxf = scene3d.exportDXF();
+  downloadText(dxf, 'plan.dxf', 'application/dxf');
 };
 
 function downloadText(text, filename, mime) {
@@ -110,6 +135,15 @@ function downloadText(text, filename, mime) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+function downloadDataUrl(dataUrl, filename) {
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 // ---------------- properties panel ----------------
@@ -198,7 +232,7 @@ function updateStatus(s = {}) {
 }
 function renderCounts() {
   const closedCount = store.state.shapes.filter((s) => s.closed).length;
-  statusCount.textContent = `${store.state.shapes.length} shape${store.state.shapes.length === 1 ? '' : 's'} (${closedCount} extrudable) · ${store.state.layers.length} floor${store.state.layers.length === 1 ? '' : 's'}`;
+  statusCount.textContent = `${store.state.shapes.length} shape${store.state.shapes.length === 1 ? '' : 's'} (${closedCount} extrudable)`;
   updateStatus();
 }
 store.onChange(renderCounts);
