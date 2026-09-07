@@ -30,6 +30,15 @@ export class Plan2D {
     this.spaceDown = false;
     this._imageEls = new Map(); // image id -> <img> element, cached across renders
 
+    // Touch has no scroll wheel and no middle-click/spacebar for panning, so
+    // a second finger touching down switches into a combined pinch-zoom +
+    // two-finger-pan gesture (the same convention as maps/photo apps). The
+    // 3D view gets this for free from OrbitControls' own touch handling —
+    // this canvas is hand-rolled, so it needs its own multi-pointer tracking.
+    this.activePointers = new Map(); // pointerId -> { x, y } in client coords
+    this._pinchLastDist = null;
+    this._pinchLastMid = null;
+
     this._bind();
     this._resize();
     new ResizeObserver(() => this._resize()).observe(canvas);
@@ -68,6 +77,7 @@ export class Plan2D {
     c.addEventListener('pointerdown', (e) => this._onDown(e));
     window.addEventListener('pointermove', (e) => this._onMove(e));
     window.addEventListener('pointerup', (e) => this._onUp(e));
+    window.addEventListener('pointercancel', (e) => this._onUp(e));
     c.addEventListener('wheel', (e) => this._onWheel(e), { passive: false });
     c.addEventListener('dblclick', () => this._finishPolygon());
     c.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -109,6 +119,22 @@ export class Plan2D {
 
   _onDown(e) {
     this.canvas.setPointerCapture(e.pointerId);
+    this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (this.activePointers.size >= 2) {
+      // A second touch just landed — drop whatever the first one started
+      // (an in-progress draw, or a shape/image drag) and switch to pinch.
+      this._cancelDraw();
+      this.dragShapeSnapshot = null;
+      this.dragImageSnapshot = null;
+      this.dragMode = 'pinch';
+      const [p1, p2] = [...this.activePointers.values()];
+      const r = this.canvas.getBoundingClientRect();
+      this._pinchLastDist = Math.hypot(p2.x - p1.x, p2.y - p1.y) || 1;
+      this._pinchLastMid = { x: (p1.x + p2.x) / 2 - r.left, y: (p1.y + p2.y) / 2 - r.top };
+      return;
+    }
+
     const world = this._eventWorld(e);
     const tool = this.store.state.tool;
 
@@ -211,6 +237,14 @@ export class Plan2D {
   }
 
   _onMove(e) {
+    if (this.activePointers.has(e.pointerId)) {
+      this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+    if (this.dragMode === 'pinch') {
+      this._updatePinch();
+      return;
+    }
+
     const world = this._eventWorld(e);
     this.cursorWorld = world;
 
@@ -278,6 +312,17 @@ export class Plan2D {
   }
 
   _onUp(e) {
+    this.activePointers.delete(e.pointerId);
+
+    if (this.dragMode === 'pinch') {
+      if (this.activePointers.size < 2) {
+        this.dragMode = null;
+        this._pinchLastDist = null;
+        this._pinchLastMid = null;
+      }
+      return;
+    }
+
     const world = this._eventWorld(e);
     const tool = this.store.state.tool;
 
@@ -333,6 +378,31 @@ export class Plan2D {
     const after = this._eventWorld(e);
     this.pan.x += before.x - after.x;
     this.pan.y += before.y - after.y;
+    this.render();
+    this._emitStatus();
+  }
+
+  // Two-finger pinch-zoom + pan, combined in one gesture like a map or photo
+  // app: the world point under the pinch midpoint stays anchored to it on
+  // every frame, which zooms around that point AND pans with it if the
+  // midpoint itself drifts (a two-finger drag alongside the pinch).
+  _updatePinch() {
+    const pts = [...this.activePointers.values()];
+    if (pts.length < 2) return;
+    const [p1, p2] = pts;
+    const curDist = Math.hypot(p2.x - p1.x, p2.y - p1.y) || 1;
+    const r = this.canvas.getBoundingClientRect();
+    const midLocal = { x: (p1.x + p2.x) / 2 - r.left, y: (p1.y + p2.y) / 2 - r.top };
+
+    const worldBefore = this.screenToWorld(this._pinchLastMid.x, this._pinchLastMid.y);
+    const factor = curDist / this._pinchLastDist;
+    this.zoom = Math.min(400, Math.max(4, this.zoom * factor));
+    const worldAfter = this.screenToWorld(midLocal.x, midLocal.y);
+    this.pan.x += worldBefore.x - worldAfter.x;
+    this.pan.y += worldBefore.y - worldAfter.y;
+
+    this._pinchLastDist = curDist;
+    this._pinchLastMid = midLocal;
     this.render();
     this._emitStatus();
   }

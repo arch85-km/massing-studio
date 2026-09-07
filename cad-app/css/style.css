@@ -170,7 +170,7 @@ input[type="color"] {
   background: #12161c;
 }
 .pane + .pane { border-left: 1px solid var(--border); }
-.pane canvas { display: block; width: 100%; height: 100%; }
+.pane canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .pane-label {
   position: absolute;
   top: 8px; left: 10px;
@@ -282,7 +282,9 @@ input[type="color"] {
   background: var(--panel-alt);
   border: 1px solid var(--border);
   border-radius: 4px;
+  cursor: pointer;
 }
+.imported-row.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
 .imported-name {
   min-width: 0;
   font-size: 12.5px;
@@ -322,3 +324,51 @@ input[type="color"] {
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: var(--panel); }
 ::-webkit-scrollbar-thumb { background: #2a323d; border-radius: 6px; }
+
+/* ---------------- mobile / narrow screens ---------------- */
+@media (max-width: 760px) {
+  :root { font-size: 14px; }
+
+  /* A wrapping toolbar turns into 4-5 short unreadable rows on a phone —
+     a single horizontally-scrollable row is the standard mobile pattern
+     (same idea as Figma/Docs' mobile toolbars) and keeps every control
+     reachable with a swipe instead of stacking the page taller. */
+  #toolbar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  .tool-group { flex-shrink: 0; }
+  .brand { padding-right: 8px; }
+  .brand-text small { display: none; }
+  .num-inline { display: none; } /* grid-size number entry — Snap checkbox alone still fits */
+
+  /* Canvas is the primary surface on a phone — put it above the sidebar
+     (DOM order is sidebar-then-canvas; column-reverse flips which one
+     renders first without restructuring the markup) and give the sidebar
+     a capped, independently-scrolling height instead of splitting the
+     screen down the middle. */
+  #workspace { flex-direction: column-reverse; }
+  #sidebar {
+    width: 100%;
+    min-width: 0;
+    max-height: 38vh;
+    border-right: none;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Two side-by-side (or even stacked) panes at phone height leaves too
+     little room for either one, or for the sidebar below them — so on a
+     phone "Split" behaves like "2D": one full-height pane at a time, with
+     the explicit 2D/Split/3D buttons still switching which one shows. */
+  #workspace[data-view="split"] #pane-3d { display: none; }
+
+  /* Slightly larger tap targets than the mouse-tuned desktop sizes. */
+  .icon-btn { width: 36px; height: 36px; }
+  .icon-btn.small { width: 30px; height: 30px; }
+  .btn { padding: 9px 12px; }
+
+  #statusbar { flex-wrap: wrap; row-gap: 2px; }
+  .copyright { display: none; } /* first to go when the status bar is tight */
+}

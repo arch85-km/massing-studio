@@ -144,8 +144,9 @@ export class Scene3D {
   }
 
   // Adds/removes parsed .obj Object3Ds to match state.importedModels,
-  // parsing each model's text only once (cached by id) rather than on
-  // every store change.
+  // parsing each model's text only once (cached by id) rather than on every
+  // store change — but re-applies position/scale every time, since those
+  // can change (via the Reference Models panel) without a re-parse.
   _syncImportedModels(models) {
     const currentIds = new Set(models.map((m) => m.id));
 
@@ -161,29 +162,34 @@ export class Scene3D {
     }
 
     for (const model of models) {
-      if (this.importedMeshCache.has(model.id)) continue;
-      const text = this.store.modelAssets.get(model.id);
-      if (!text) continue;
-      try {
-        const obj = new OBJLoader().parse(text);
-        obj.traverse((child) => {
-          if (!child.isMesh) return;
-          child.material = new THREE.MeshStandardMaterial({
-            color: 0x8a97a8,
-            roughness: 0.85,
-            metalness: 0.05,
-            transparent: true,
-            opacity: 0.85,
-            side: THREE.DoubleSide,
+      if (!this.importedMeshCache.has(model.id)) {
+        const text = this.store.modelAssets.get(model.id);
+        if (!text) continue;
+        try {
+          const obj = new OBJLoader().parse(text);
+          obj.traverse((child) => {
+            if (!child.isMesh) return;
+            child.material = new THREE.MeshStandardMaterial({
+              color: 0x8a97a8,
+              roughness: 0.85,
+              metalness: 0.05,
+              transparent: true,
+              opacity: 0.85,
+              side: THREE.DoubleSide,
+            });
+            child.castShadow = false;
+            child.receiveShadow = true;
           });
-          child.castShadow = false;
-          child.receiveShadow = true;
-        });
-        this.importedGroup.add(obj);
-        this.importedMeshCache.set(model.id, obj);
-      } catch (err) {
-        console.warn(`Failed to parse imported model "${model.name}":`, err);
+          this.importedGroup.add(obj);
+          this.importedMeshCache.set(model.id, obj);
+        } catch (err) {
+          console.warn(`Failed to parse imported model "${model.name}":`, err);
+          continue;
+        }
       }
+      const obj = this.importedMeshCache.get(model.id);
+      obj.position.set(model.x ?? 0, model.y ?? 0, model.z ?? 0);
+      obj.scale.setScalar(model.scale ?? 1);
     }
   }
 

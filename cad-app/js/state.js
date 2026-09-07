@@ -29,8 +29,9 @@ function initialState() {
     shapes: [],
     selection: [],
     images: [],           // { id, x, y, width, height, opacity } — pixel data lives in store.imageAssets
-    importedModels: [],   // { id, name } — raw .obj text lives in store.modelAssets
+    importedModels: [],   // { id, name, x, y, z, scale } — raw .obj text lives in store.modelAssets
     selectedImageId: null,
+    selectedModelId: null,
     tool: 'select',
     grid: { size: 1, snap: true, majorEvery: 5 },
     view: 'split', // 'split' | '2d' | '3d'
@@ -161,6 +162,7 @@ export class Store {
   setSelection(ids) {
     this.state.selection = ids;
     this.state.selectedImageId = null;
+    this.state.selectedModelId = null;
     this.notify();
   }
 
@@ -168,6 +170,7 @@ export class Store {
     this.state.tool = tool;
     this.state.selection = [];
     this.state.selectedImageId = null;
+    this.state.selectedModelId = null;
     this.notify();
   }
 
@@ -177,6 +180,7 @@ export class Store {
     this.imageAssets.set(image.id, dataUrl);
     this.state.images.push(image);
     this.state.selectedImageId = image.id;
+    this.state.selectedModelId = null;
     this.state.selection = [];
     this.notify();
   }
@@ -197,6 +201,7 @@ export class Store {
 
   setSelectedImage(imageId) {
     this.state.selectedImageId = imageId;
+    this.state.selectedModelId = null;
     this.state.selection = [];
     this.notify();
   }
@@ -209,9 +214,24 @@ export class Store {
     this.notify();
   }
 
+  updateImportedModel(modelId, patch, { history = true } = {}) {
+    if (history) this.snapshot();
+    const model = this.state.importedModels.find((m) => m.id === modelId);
+    if (model) Object.assign(model, patch);
+    this.notify();
+  }
+
   removeImportedModel(modelId) {
     this.snapshot();
     this.state.importedModels = this.state.importedModels.filter((m) => m.id !== modelId);
+    if (this.state.selectedModelId === modelId) this.state.selectedModelId = null;
+    this.notify();
+  }
+
+  setSelectedModel(modelId) {
+    this.state.selectedModelId = modelId;
+    this.state.selectedImageId = null;
+    this.state.selection = [];
     this.notify();
   }
 
@@ -235,6 +255,7 @@ export class Store {
     this.state.images = [];
     this.state.importedModels = [];
     this.state.selectedImageId = null;
+    this.state.selectedModelId = null;
     this.imageAssets.clear();
     this.modelAssets.clear();
     this.notify();

@@ -139,7 +139,7 @@ importObjInput.onchange = () => {
   }
   const reader = new FileReader();
   reader.onload = () => {
-    store.addImportedModel({ id: nextId('model'), name: file.name }, reader.result);
+    store.addImportedModel({ id: nextId('model'), name: file.name, x: 0, y: 0, z: 0, scale: 1 }, reader.result);
     if (store.state.view === '2d') { store.setView('split'); applyView(); }
     scene3d.frameAll();
   };
@@ -501,10 +501,77 @@ function renderImageProps(image) {
   propsPanel.appendChild(body);
 }
 
+// Properties for a selected imported reference model: position (X/Y/Z, in
+// meters — Y is elevation, matching the floor/layer convention) and a
+// uniform scale factor, since an .obj's own coordinates and units are
+// whatever its source authored them in and rarely land where you want them.
+function renderModelProps(model) {
+  propsPanel.innerHTML = '';
+  const header = document.createElement('div');
+  header.className = 'panel-header';
+  header.innerHTML = '<span>Reference Model</span>';
+  propsPanel.appendChild(header);
+
+  const body = document.createElement('div');
+  body.className = 'props-body';
+
+  const nameRow = document.createElement('div');
+  nameRow.className = 'props-row';
+  nameRow.innerHTML = `<span>File</span><b title="${model.name}">${model.name}</b>`;
+  body.appendChild(nameRow);
+
+  const axisField = (label, axis) => {
+    const row = document.createElement('label');
+    row.className = 'props-row';
+    row.innerHTML = `<span>Position ${label} (m)</span>`;
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.step = '0.1';
+    input.value = model[axis];
+    input.onchange = () => store.updateImportedModel(model.id, { [axis]: parseFloat(input.value) || 0 });
+    row.appendChild(input);
+    return row;
+  };
+  body.appendChild(axisField('X', 'x'));
+  body.appendChild(axisField('Y — elevation', 'y'));
+  body.appendChild(axisField('Z', 'z'));
+
+  const scaleRow = document.createElement('label');
+  scaleRow.className = 'props-row';
+  scaleRow.innerHTML = '<span>Scale</span>';
+  const scaleInput = document.createElement('input');
+  scaleInput.type = 'number';
+  scaleInput.step = '0.1';
+  scaleInput.min = '0.01';
+  scaleInput.value = model.scale;
+  scaleInput.onchange = () => {
+    const s = Math.max(0.01, parseFloat(scaleInput.value) || model.scale);
+    store.updateImportedModel(model.id, { scale: s });
+  };
+  scaleRow.appendChild(scaleInput);
+  body.appendChild(scaleRow);
+
+  const hint = document.createElement('div');
+  hint.className = 'panel-hint';
+  hint.textContent = '3D reference only — shown for context in the 3D view, not editable geometry and not included in any export.';
+  body.appendChild(hint);
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'btn danger full';
+  delBtn.textContent = 'Delete model';
+  delBtn.onclick = () => store.removeImportedModel(model.id);
+  body.appendChild(delBtn);
+
+  propsPanel.appendChild(body);
+}
+
 const propsPanel = document.getElementById('properties-panel');
 function renderProps() {
   const image = store.state.images.find((im) => im.id === store.state.selectedImageId);
   if (image) { renderImageProps(image); return; }
+
+  const model = store.state.importedModels.find((m) => m.id === store.state.selectedModelId);
+  if (model) { renderModelProps(model); return; }
 
   const shape = store.state.shapes.find((s) => s.id === store.state.selection[0]);
   propsPanel.innerHTML = '';
@@ -584,7 +651,9 @@ function renderImportedModels() {
   list.className = 'imported-list';
   models.forEach((m) => {
     const row = document.createElement('div');
-    row.className = 'imported-row';
+    row.className = 'imported-row' + (store.state.selectedModelId === m.id ? ' active' : '');
+    row.title = 'Click to move, resize, or delete this model';
+    row.onclick = () => store.setSelectedModel(m.id);
     const name = document.createElement('span');
     name.className = 'imported-name';
     name.textContent = m.name;
@@ -593,7 +662,7 @@ function renderImportedModels() {
     del.className = 'icon-btn small danger';
     del.textContent = '✕';
     del.title = 'Remove';
-    del.onclick = () => store.removeImportedModel(m.id);
+    del.onclick = (e) => { e.stopPropagation(); store.removeImportedModel(m.id); };
     row.appendChild(name);
     row.appendChild(del);
     list.appendChild(row);
