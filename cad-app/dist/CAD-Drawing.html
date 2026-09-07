@@ -3,7 +3,8 @@
 <head>
   <!--
 Studio CAD vendors Three.js (r160, module build) plus the OrbitControls,
-OBJExporter, and OBJLoader addons from the same release, under the MIT License:
+OBJExporter, OBJLoader, and STLExporter addons from the same release, under
+the MIT License:
 
 The MIT License
 
@@ -248,6 +249,10 @@ input[type="color"] {
   z-index: 20;
 }
 .dropdown-menu.open { display: flex; flex-direction: column; gap: 2px; }
+/* This button sits near the toolbar's left edge (unlike Export/Import, which
+   sit further right) — right:0 would push the menu leftward off-screen, so
+   it opens from its own left edge instead. */
+#clipboard-menu { left: 0; right: auto; }
 .dropdown-item {
   background: transparent;
   border: none;
@@ -260,6 +265,8 @@ input[type="color"] {
   white-space: nowrap;
 }
 .dropdown-item:hover { background: #232c38; }
+.dropdown-item:disabled { opacity: 0.35; cursor: not-allowed; }
+.dropdown-item:disabled:hover { background: transparent; }
 .dropdown-item:focus-visible, .btn:focus-visible, .icon-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
@@ -391,8 +398,12 @@ input[type="color"] {
     min-width: 0;
     width: 100%;
   }
+  /* Row 1 deliberately does NOT scroll — it's precisely tuned (icon-button
+     sizes, gaps, wordmark hidden) to fit exactly, verified at 360-390px
+     widths. overflow-x:auto here would also clip the clipboard dropdown
+     menu below it, since an absolutely-positioned child is still clipped by
+     an ancestor's non-visible overflow. Only the secondary row scrolls. */
   .toolbar-row-primary { border-bottom: 1px solid var(--border); }
-  .toolbar-row-primary,
   .toolbar-row-secondary {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -429,9 +440,17 @@ input[type="color"] {
   .icon-btn { width: 36px; height: 36px; }
   .icon-btn.small { width: 30px; height: 30px; }
   .btn { padding: 9px 12px; }
+  /* Row 1 is the tightest-budget row (see the comment above it) — its icon
+     buttons (Undo/Redo/Copy-Cut-Paste) go a touch smaller than the general
+     mobile size so the row keeps fitting without a scrollbar. */
+  .toolbar-row-primary .icon-btn { width: 30px; height: 30px; }
 
   #statusbar { flex-wrap: wrap; row-gap: 2px; }
-  .copyright { display: none; } /* first to go when the status bar is tight */
+  /* "units: meters" never changes (there's no unit switcher) — it's the more
+     expendable of the two, so it goes instead of the copyright when the
+     status bar is tight. Wrapping (above) catches anything that still
+     doesn't fit rather than clipping it. */
+  .units-label { display: none; }
 }
   </style>
 </head>
@@ -455,6 +474,17 @@ input[type="color"] {
       <div class="tool-group" role="group" aria-label="Edit">
         <button id="btn-undo" class="icon-btn" title="Undo (Ctrl+Z)">↶</button>
         <button id="btn-redo" class="icon-btn" title="Redo (Ctrl+Shift+Z)">↷</button>
+        <!-- One dropdown instead of 3 separate icon buttons — keeps this
+             always-visible mobile row from overflowing while still sitting
+             right next to Undo/Redo, same as on desktop. -->
+        <div class="dropdown" id="clipboard-dropdown">
+          <button id="btn-clipboard-toggle" class="icon-btn" title="Copy / Cut / Paste" aria-haspopup="true" aria-expanded="false">⧉</button>
+          <div class="dropdown-menu" id="clipboard-menu" role="menu">
+            <button class="dropdown-item" id="btn-copy" role="menuitem" title="Copy (Ctrl+C)">Copy</button>
+            <button class="dropdown-item" id="btn-cut" role="menuitem" title="Cut (Ctrl+X)">Cut</button>
+            <button class="dropdown-item" id="btn-paste" role="menuitem" title="Paste (Ctrl+V)">Paste</button>
+          </div>
+        </div>
       </div>
 
       <div class="tool-group" role="group" aria-label="View mode">
@@ -470,6 +500,7 @@ input[type="color"] {
           <button id="btn-export-toggle" class="btn primary" title="Export the drawing" aria-haspopup="true" aria-expanded="false">Export ▾</button>
           <div class="dropdown-menu" id="export-menu" role="menu">
             <button class="dropdown-item" id="btn-export-obj" role="menuitem" title="Export extruded solids as .obj">Export .OBJ</button>
+            <button class="dropdown-item" id="btn-export-stl" role="menuitem" title="Export extruded solids as a binary .stl (3D printing)">Export .STL</button>
             <button class="dropdown-item" id="btn-export-png" role="menuitem" title="Export the current 3D view as an image">Export .PNG</button>
             <button class="dropdown-item" id="btn-export-dxf" role="menuitem" title="Export the 2D plan as a DXF drawing">Export .DXF</button>
           </div>
@@ -563,7 +594,6 @@ input[type="color"] {
     <span class="grow-spacer"></span>
     <span class="units-label">units: meters</span>
   </footer>
-
 
   <script>
     window.App = {};
@@ -56265,6 +56295,209 @@ THREE.OBJLoader = OBJLoader;
   })(window.THREE);
   </script>
   <script>
+  (function(THREE){
+const { Vector3 } = THREE;
+
+/**
+ * Usage:
+ *  const exporter = new STLExporter();
+ *
+ *  // second argument is a list of options
+ *  const data = exporter.parse( mesh, { binary: true } );
+ *
+ */
+
+class STLExporter {
+
+	parse( scene, options = {} ) {
+
+		options = Object.assign( {
+			binary: false
+		}, options );
+
+		const binary = options.binary;
+
+		//
+
+		const objects = [];
+		let triangles = 0;
+
+		scene.traverse( function ( object ) {
+
+			if ( object.isMesh ) {
+
+				const geometry = object.geometry;
+
+				const index = geometry.index;
+				const positionAttribute = geometry.getAttribute( 'position' );
+
+				triangles += ( index !== null ) ? ( index.count / 3 ) : ( positionAttribute.count / 3 );
+
+				objects.push( {
+					object3d: object,
+					geometry: geometry
+				} );
+
+			}
+
+		} );
+
+		let output;
+		let offset = 80; // skip header
+
+		if ( binary === true ) {
+
+			const bufferLength = triangles * 2 + triangles * 3 * 4 * 4 + 80 + 4;
+			const arrayBuffer = new ArrayBuffer( bufferLength );
+			output = new DataView( arrayBuffer );
+			output.setUint32( offset, triangles, true ); offset += 4;
+
+		} else {
+
+			output = '';
+			output += 'solid exported\n';
+
+		}
+
+		const vA = new Vector3();
+		const vB = new Vector3();
+		const vC = new Vector3();
+		const cb = new Vector3();
+		const ab = new Vector3();
+		const normal = new Vector3();
+
+		for ( let i = 0, il = objects.length; i < il; i ++ ) {
+
+			const object = objects[ i ].object3d;
+			const geometry = objects[ i ].geometry;
+
+			const index = geometry.index;
+			const positionAttribute = geometry.getAttribute( 'position' );
+
+			if ( index !== null ) {
+
+				// indexed geometry
+
+				for ( let j = 0; j < index.count; j += 3 ) {
+
+					const a = index.getX( j + 0 );
+					const b = index.getX( j + 1 );
+					const c = index.getX( j + 2 );
+
+					writeFace( a, b, c, positionAttribute, object );
+
+				}
+
+			} else {
+
+				// non-indexed geometry
+
+				for ( let j = 0; j < positionAttribute.count; j += 3 ) {
+
+					const a = j + 0;
+					const b = j + 1;
+					const c = j + 2;
+
+					writeFace( a, b, c, positionAttribute, object );
+
+				}
+
+			}
+
+		}
+
+		if ( binary === false ) {
+
+			output += 'endsolid exported\n';
+
+		}
+
+		return output;
+
+		function writeFace( a, b, c, positionAttribute, object ) {
+
+			vA.fromBufferAttribute( positionAttribute, a );
+			vB.fromBufferAttribute( positionAttribute, b );
+			vC.fromBufferAttribute( positionAttribute, c );
+
+			if ( object.isSkinnedMesh === true ) {
+
+				object.applyBoneTransform( a, vA );
+				object.applyBoneTransform( b, vB );
+				object.applyBoneTransform( c, vC );
+
+			}
+
+			vA.applyMatrix4( object.matrixWorld );
+			vB.applyMatrix4( object.matrixWorld );
+			vC.applyMatrix4( object.matrixWorld );
+
+			writeNormal( vA, vB, vC );
+
+			writeVertex( vA );
+			writeVertex( vB );
+			writeVertex( vC );
+
+			if ( binary === true ) {
+
+				output.setUint16( offset, 0, true ); offset += 2;
+
+			} else {
+
+				output += '\t\tendloop\n';
+				output += '\tendfacet\n';
+
+			}
+
+		}
+
+		function writeNormal( vA, vB, vC ) {
+
+			cb.subVectors( vC, vB );
+			ab.subVectors( vA, vB );
+			cb.cross( ab ).normalize();
+
+			normal.copy( cb ).normalize();
+
+			if ( binary === true ) {
+
+				output.setFloat32( offset, normal.x, true ); offset += 4;
+				output.setFloat32( offset, normal.y, true ); offset += 4;
+				output.setFloat32( offset, normal.z, true ); offset += 4;
+
+			} else {
+
+				output += '\tfacet normal ' + normal.x + ' ' + normal.y + ' ' + normal.z + '\n';
+				output += '\t\touter loop\n';
+
+			}
+
+		}
+
+		function writeVertex( vertex ) {
+
+			if ( binary === true ) {
+
+				output.setFloat32( offset, vertex.x, true ); offset += 4;
+				output.setFloat32( offset, vertex.y, true ); offset += 4;
+				output.setFloat32( offset, vertex.z, true ); offset += 4;
+
+			} else {
+
+				output += '\t\t\tvertex ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z + '\n';
+
+			}
+
+		}
+
+	}
+
+}
+
+THREE.STLExporter = STLExporter;
+  })(window.THREE);
+  </script>
+  <script>
   (function(App){
 // state.js — central application state, mutation helpers, and undo/redo history.
 // Nothing here touches the DOM or Three.js; canvas2d.js / scene3d.js / layers-ui.js
@@ -56657,6 +56890,16 @@ function boundsOf(points) {
   return { minX, minY, maxX, maxY };
 }
 
+// Intersection of two infinite 2D lines, each given as a point + direction.
+// Returns null if the lines are parallel/near-parallel (caller supplies a fallback).
+function lineIntersect(pA, dA, pB, dB) {
+  const denom = dA.x * dB.y - dA.y * dB.x;
+  if (Math.abs(denom) < 1e-9) return null;
+  const diff = { x: pB.x - pA.x, y: pB.y - pA.y };
+  const t = (diff.x * dB.y - diff.y * dB.x) / denom;
+  return { x: pA.x + t * dA.x, y: pA.y + t * dA.y };
+}
+
 // Shoelace formula — signed area (positive = counter-clockwise in plan coords).
 function polygonArea(points) {
   let sum = 0;
@@ -56667,7 +56910,7 @@ function polygonArea(points) {
   }
   return sum / 2;
 }
-  App.snap = snap; App.snapPoint = snapPoint; App.dist = dist; App.findNearestVertex = findNearestVertex; App.shapePoints = shapePoints; App.pointInPolygon = pointInPolygon; App.distToSegment = distToSegment; App.hitTestShape = hitTestShape; App.centroid = centroid; App.boundsOf = boundsOf; App.polygonArea = polygonArea;
+  App.snap = snap; App.snapPoint = snapPoint; App.dist = dist; App.findNearestVertex = findNearestVertex; App.shapePoints = shapePoints; App.pointInPolygon = pointInPolygon; App.distToSegment = distToSegment; App.hitTestShape = hitTestShape; App.centroid = centroid; App.boundsOf = boundsOf; App.lineIntersect = lineIntersect; App.polygonArea = polygonArea;
   })(window.App);
   </script>
   <script>
@@ -57146,6 +57389,8 @@ class Plan2D {
       this.store.removeShapes(this.store.state.selection);
     } else if (this.store.state.selectedImageId) {
       this.store.removeImage(this.store.state.selectedImageId);
+    } else if (this.store.state.selectedModelId) {
+      this.store.removeImportedModel(this.store.state.selectedModelId);
     }
   }
 
@@ -57400,8 +57645,8 @@ class Plan2D {
   </script>
   <script>
   (function(App, THREE){
-  const { shapePoints } = App;
-  const { OrbitControls, OBJExporter, OBJLoader } = THREE;
+  const { shapePoints, distToSegment, polygonArea, lineIntersect } = App;
+  const { OrbitControls, OBJExporter, OBJLoader, STLExporter } = THREE;
 // scene3d.js — Three.js viewport: renders extruded solids from the shape
 // data model, provides the SketchUp-style push/pull tool, and exports .obj.
 
@@ -57715,6 +57960,17 @@ class Scene3D {
   }
 
   // ---- push / pull ----
+  // Grabbing the top face changes the shape's overall height (unchanged from
+  // before). Grabbing a side wall now independently moves just that wall —
+  // for a rect this is one edge sliding in/out; for an arbitrary polygon it's
+  // the standard "offset one edge, re-intersect with its fixed neighbors"
+  // operation; for a circle (no distinct walls) it's a uniform radius change.
+  // The bottom face is deliberately inert — it stays anchored to the layer
+  // floor. Which face was grabbed is read straight from the raycast hit's
+  // face normal: this mesh is a straight, unbeveled ExtrudeGeometry rotated
+  // so world Y is up with no further rotation/scale on the mesh itself, so
+  // a cap's normal.y is ~±1 and a side wall's is ~0 — no fuzzy tolerance
+  // needed, 0.5 cleanly separates the two.
   _onPushPullDown(e) {
     this._setPointer(e);
     this.raycaster.setFromCamera(this.pointer, this.camera);
@@ -57722,14 +57978,22 @@ class Scene3D {
     if (!hits.length) return;
 
     const hit = hits[0];
-    const shapeId = hit.object.userData.shapeId;
-    const shape = this.store.state.shapes.find((s) => s.id === shapeId);
+    const shape = this.store.state.shapes.find((s) => s.id === hit.object.userData.shapeId);
     if (!shape || !shape.closed) return;
 
+    const ny = hit.face.normal.y;
+    if (ny >= 0.5) { this._startHeightDrag(shape, hit); return; }
+    if (ny <= -0.5) return; // bottom cap — stays anchored to the floor, out of scope
+    if (shape.type === 'circle') { this._startRadiusDrag(shape, hit); return; }
+    this._startWallDrag(shape, hit);
+  }
+
+  _startHeightDrag(shape, hit) {
     this.controls.enabled = false;
     this.store.snapshot();
     this.pushPull = {
-      shapeId,
+      mode: 'height',
+      shapeId: shape.id,
       startHeight: shape.height || 0,
       grabPoint: hit.point.clone(),
       // A vertical plane through the grab point, facing the camera —
@@ -57744,20 +58008,108 @@ class Scene3D {
     this.canvas.style.cursor = 'ns-resize';
   }
 
+  // A circle has no distinct walls — its whole curved side is one surface,
+  // so "push/pull a wall" naturally generalizes to a uniform radius change
+  // driven by the drag point's distance from the shape's center.
+  _startRadiusDrag(shape, hit) {
+    this.controls.enabled = false;
+    this.store.snapshot();
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -hit.point.y);
+    this.pushPull = { mode: 'radius', shapeId: shape.id, plane };
+    this.canvas.style.cursor = 'move';
+  }
+
+  // Rect / polygon: find the grabbed edge, remember its outward normal and
+  // its two fixed neighbor edges (needed to re-intersect after the offset).
+  _startWallDrag(shape, hit) {
+    const pts = shape.points;
+    if (!pts || pts.length < 3) return; // nothing sane to offset (e.g. a 2-point shape)
+
+    // world X = local shape X, world Z = -(local shape Y) — see _buildMesh's
+    // geometry.rotateX(-Math.PI/2); the mesh itself has no other rotation/scale.
+    const localHit = { x: hit.point.x, y: -hit.point.z };
+
+    let bestI = 0, bestD = Infinity;
+    for (let i = 0; i < pts.length; i++) {
+      const d = distToSegment(localHit, pts[i], pts[(i + 1) % pts.length]);
+      if (d < bestD) { bestD = d; bestI = i; }
+    }
+    const i2 = (bestI + 1) % pts.length;
+    const iPrev = (bestI - 1 + pts.length) % pts.length;
+    const iNext = (i2 + 1) % pts.length;
+    const V1 = { ...pts[bestI] };
+    const V2 = { ...pts[i2] };
+    const Vprev = { ...pts[iPrev] };
+    const Vnext = { ...pts[iNext] };
+
+    const edgeDir = { x: V2.x - V1.x, y: V2.y - V1.y };
+    // Outward normal: for a CCW polygon (positive shoelace area) the interior
+    // lies to the left of each directed edge, so outward is (dy, -dx); a CW
+    // polygon flips the sign.
+    const sign = polygonArea(pts) >= 0 ? 1 : -1;
+    let n = { x: sign * edgeDir.y, y: -sign * edgeDir.x };
+    const nLen = Math.hypot(n.x, n.y) || 1;
+    n = { x: n.x / nLen, y: n.y / nLen };
+
+    this.controls.enabled = false;
+    this.store.snapshot();
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -hit.point.y);
+    this.pushPull = {
+      mode: 'wall',
+      shapeId: shape.id,
+      plane,
+      i: bestI, i2,
+      V1, V2, Vprev, Vnext, edgeDir, n,
+      startPoints: pts.map((p) => ({ ...p })),
+      startArea: Math.abs(polygonArea(pts)),
+    };
+    this.canvas.style.cursor = 'move';
+  }
+
   _onPushPullMove(e) {
     this._setPointer(e);
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    const point = new THREE.Vector3();
-    if (!this.raycaster.ray.intersectPlane(this.pushPull.plane, point)) return;
-
-    const deltaY = point.y - this.pushPull.grabPoint.y;
-    const newHeight = Math.max(0, Math.round((this.pushPull.startHeight + deltaY) * 100) / 100);
-
-    const shapeIndex = this.store.state.shapes.findIndex((s) => s.id === this.pushPull.shapeId);
+    const pp = this.pushPull;
+    const shapeIndex = this.store.state.shapes.findIndex((s) => s.id === pp.shapeId);
     const shape = this.store.state.shapes[shapeIndex];
-    const layer = this.store.state.layers.find((l) => l.id === shape.layerId);
     if (!shape) return;
-    shape.height = newHeight;
+    const layer = this.store.state.layers.find((l) => l.id === shape.layerId);
+
+    if (pp.mode === 'height') {
+      const point = new THREE.Vector3();
+      if (!this.raycaster.ray.intersectPlane(pp.plane, point)) return;
+      const deltaY = point.y - pp.grabPoint.y;
+      shape.height = Math.max(0, Math.round((pp.startHeight + deltaY) * 100) / 100);
+      this.onStatus({ pushPullHeight: shape.height });
+    } else if (pp.mode === 'radius') {
+      const point = new THREE.Vector3();
+      if (!this.raycaster.ray.intersectPlane(pp.plane, point)) return;
+      const localX = point.x, localY = -point.z;
+      const r = Math.hypot(localX - shape.center.x, localY - shape.center.y);
+      shape.radius = Math.max(0.05, Math.min(1000, Math.round(r * 100) / 100));
+    } else if (pp.mode === 'wall') {
+      const point = new THREE.Vector3();
+      if (!this.raycaster.ray.intersectPlane(pp.plane, point)) return; // ray ~parallel to the ground plane — skip this frame
+      const localPoint = { x: point.x, y: -point.z };
+      // Signed distance of the drag point from the original edge line, along its outward normal.
+      // Clamped: at a grazing camera angle a ground-plane ray intersection can
+      // shoot out to an extreme, unstable distance for a small mouse move —
+      // this keeps a stray drag from ever corrupting the shape's coordinates.
+      let d = (localPoint.x - pp.V1.x) * pp.n.x + (localPoint.y - pp.V1.y) * pp.n.y;
+      d = Math.max(-500, Math.min(500, d));
+      const shifted = { x: pp.V1.x + pp.n.x * d, y: pp.V1.y + pp.n.y * d };
+
+      const dirPrev = { x: pp.V1.x - pp.Vprev.x, y: pp.V1.y - pp.Vprev.y };
+      const dirNext = { x: pp.Vnext.x - pp.V2.x, y: pp.Vnext.y - pp.V2.y };
+      const newV1 = lineIntersect(pp.Vprev, dirPrev, shifted, pp.edgeDir) ?? { x: pp.V1.x + pp.n.x * d, y: pp.V1.y + pp.n.y * d };
+      const newV2 = lineIntersect(pp.V2, dirNext, shifted, pp.edgeDir) ?? { x: pp.V2.x + pp.n.x * d, y: pp.V2.y + pp.n.y * d };
+
+      const candidate = pp.startPoints.map((p, idx) => (idx === pp.i ? newV1 : idx === pp.i2 ? newV2 : p));
+      const newArea = Math.abs(polygonArea(candidate));
+      if (newArea < pp.startArea * 0.05) return; // reject a collapsing/self-intersecting edit — freeze at the last valid shape
+      shape.points = candidate;
+    }
+
     const mesh = this.meshByShape.get(shape.id);
     if (mesh) {
       this.modelGroup.remove(mesh);
@@ -57767,14 +58119,13 @@ class Scene3D {
       this.modelGroup.add(rebuilt);
       this.meshByShape.set(shape.id, rebuilt);
     }
-    this.onStatus({ pushPullHeight: newHeight });
   }
 
   _onPushPullUp() {
     this.pushPull = null;
     this.controls.enabled = true;
     this.canvas.style.cursor = '';
-    this.store.notify(); // sync 2D view + panels with the final height
+    this.store.notify(); // sync 2D view + panels with the final shape
   }
 
   // ---- reference-model select / move / scale ----
@@ -57924,6 +58275,25 @@ class Scene3D {
     if (!exportGroup.children.length) return null;
     exportGroup.updateMatrixWorld(true);
     return exporter.parse(exportGroup);
+  }
+
+  // Binary STL of the same solids as exportOBJ() — for 3D printing / CAM tools.
+  exportSTL() {
+    const exporter = new STLExporter();
+    const exportGroup = new THREE.Group();
+    for (const shape of this.store.state.shapes) {
+      if (!shape.closed || !(shape.height > 0)) continue;
+      const mesh = this.meshByShape.get(shape.id);
+      if (!mesh) continue;
+      const bare = new THREE.Mesh(mesh.geometry, mesh.material);
+      bare.position.copy(mesh.position);
+      bare.rotation.copy(mesh.rotation);
+      bare.scale.copy(mesh.scale);
+      exportGroup.add(bare);
+    }
+    if (!exportGroup.children.length) return null;
+    exportGroup.updateMatrixWorld(true);
+    return exporter.parse(exportGroup, { binary: true }); // DataView
   }
 
   // Snapshot the current 3D view as a PNG data URL.
@@ -58090,6 +58460,16 @@ importToggle.onclick = (e) => {
   importToggle.setAttribute('aria-expanded', String(isOpen));
 };
 importMenu.addEventListener('click', (e) => e.stopPropagation());
+
+// ---------------- clipboard dropdown ----------------
+const clipboardToggle = document.getElementById('btn-clipboard-toggle');
+const clipboardMenu = document.getElementById('clipboard-menu');
+clipboardToggle.onclick = (e) => {
+  e.stopPropagation();
+  const isOpen = clipboardMenu.classList.toggle('open');
+  clipboardToggle.setAttribute('aria-expanded', String(isOpen));
+};
+clipboardMenu.addEventListener('click', (e) => e.stopPropagation());
 
 const importObjInput = document.getElementById('import-obj-input');
 const importDxfInput = document.getElementById('import-dxf-input');
@@ -58284,6 +58664,7 @@ window.addEventListener('click', () => {
   document.querySelectorAll('.dropdown-menu.open').forEach((m) => m.classList.remove('open'));
   exportToggle.setAttribute('aria-expanded', 'false');
   importToggle.setAttribute('aria-expanded', 'false');
+  clipboardToggle.setAttribute('aria-expanded', 'false');
 });
 
 document.getElementById('btn-export-obj').onclick = () => {
@@ -58309,8 +58690,28 @@ document.getElementById('btn-export-dxf').onclick = () => {
   downloadText(dxf, 'plan.dxf', 'application/dxf');
 };
 
+document.getElementById('btn-export-stl').onclick = () => {
+  const stl = scene3d.exportSTL();
+  if (!stl) {
+    alert('Nothing to export yet — draw a shape and give it a height above 0 first.');
+    return;
+  }
+  downloadBlob(new Blob([stl], { type: 'model/stl' }), 'model.stl');
+};
+
 function downloadText(text, filename, mime) {
   const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -58681,6 +59082,89 @@ store.onChange(renderCounts);
 renderCounts();
 
 // ---------------- keyboard shortcuts ----------------
+// ---------------- copy / cut / paste ----------------
+// Kept as local module state rather than in `store.state` — like
+// imageAssets/modelAssets, a clipboard can hold a large asset payload
+// (image data URL, .obj text) that has no business being duplicated into
+// every undo snapshot.
+let clipboard = null; // { kind: 'shapes'|'image'|'model', ...payload, pasteCount }
+const PASTE_OFFSET = 0.5; // meters — so repeated pastes fan out visibly
+
+function hasClipboardSource() {
+  const s = store.state;
+  return s.selection.length > 0 || !!s.selectedImageId || !!s.selectedModelId;
+}
+
+function copySelection() {
+  const s = store.state;
+  if (s.selection.length) {
+    const shapes = s.shapes.filter((sh) => s.selection.includes(sh.id));
+    if (!shapes.length) return;
+    clipboard = { kind: 'shapes', shapes: JSON.parse(JSON.stringify(shapes)), pasteCount: 0 };
+  } else if (s.selectedImageId) {
+    const img = s.images.find((im) => im.id === s.selectedImageId);
+    if (!img) return;
+    clipboard = { kind: 'image', image: { ...img }, dataUrl: store.imageAssets.get(img.id), pasteCount: 0 };
+  } else if (s.selectedModelId) {
+    const model = s.importedModels.find((m) => m.id === s.selectedModelId);
+    if (!model) return;
+    clipboard = { kind: 'model', model: { ...model }, objText: store.modelAssets.get(model.id), pasteCount: 0 };
+  } else {
+    return;
+  }
+  refreshClipboardButtons();
+}
+
+function cutSelection() {
+  if (!hasClipboardSource()) return;
+  copySelection();
+  plan2d._deleteSelection();
+}
+
+function pasteClipboard() {
+  if (!clipboard) return;
+  const off = PASTE_OFFSET * ++clipboard.pasteCount;
+  if (clipboard.kind === 'shapes') {
+    const pasted = clipboard.shapes.map((sh) => {
+      const clone = JSON.parse(JSON.stringify(sh));
+      clone.id = nextId('shape');
+      if (clone.type === 'circle') {
+        clone.center = { x: clone.center.x + off, y: clone.center.y + off };
+      } else {
+        clone.points = clone.points.map((p) => ({ x: p.x + off, y: p.y + off }));
+      }
+      return clone;
+    });
+    store.addShapes(pasted);
+    store.setSelection(pasted.map((sh) => sh.id));
+  } else if (clipboard.kind === 'image') {
+    const img = clipboard.image;
+    store.addImage({ ...img, id: nextId('image'), x: img.x + off, y: img.y + off }, clipboard.dataUrl);
+  } else if (clipboard.kind === 'model') {
+    const model = clipboard.model;
+    const newId = nextId('model');
+    store.addImportedModel({ ...model, id: newId, x: model.x + off, z: model.z + off }, clipboard.objText);
+    store.setSelectedModel(newId); // addImportedModel doesn't auto-select, unlike addImage
+  }
+  refreshClipboardButtons();
+}
+
+const btnCopy = document.getElementById('btn-copy');
+const btnCut = document.getElementById('btn-cut');
+const btnPaste = document.getElementById('btn-paste');
+function refreshClipboardButtons() {
+  btnCopy.disabled = !hasClipboardSource();
+  btnCut.disabled = !hasClipboardSource();
+  btnPaste.disabled = !clipboard;
+}
+store.onChange(refreshClipboardButtons);
+refreshClipboardButtons();
+
+btnCopy.onclick = copySelection;
+btnCut.onclick = cutSelection;
+btnPaste.onclick = pasteClipboard;
+
+// ---------------- keyboard shortcuts ----------------
 const TOOL_KEYS = { v: 'select', l: 'line', r: 'rect', c: 'circle', p: 'polygon', e: 'pushpull' };
 window.addEventListener('keydown', (e) => {
   const el = document.activeElement;
@@ -58689,6 +59173,9 @@ window.addEventListener('keydown', (e) => {
 
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); store.undo(); return; }
   if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) { e.preventDefault(); store.redo(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') { e.preventDefault(); copySelection(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') { e.preventDefault(); cutSelection(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') { e.preventDefault(); pasteClipboard(); return; }
   if (e.key.toLowerCase() === 'f') { scene3d.frameAll(); plan2d.zoomToFit(); return; }
   const tool = TOOL_KEYS[e.key.toLowerCase()];
   if (tool) store.setTool(tool);

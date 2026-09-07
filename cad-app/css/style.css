@@ -212,6 +212,10 @@ input[type="color"] {
   z-index: 20;
 }
 .dropdown-menu.open { display: flex; flex-direction: column; gap: 2px; }
+/* This button sits near the toolbar's left edge (unlike Export/Import, which
+   sit further right) — right:0 would push the menu leftward off-screen, so
+   it opens from its own left edge instead. */
+#clipboard-menu { left: 0; right: auto; }
 .dropdown-item {
   background: transparent;
   border: none;
@@ -224,6 +228,8 @@ input[type="color"] {
   white-space: nowrap;
 }
 .dropdown-item:hover { background: #232c38; }
+.dropdown-item:disabled { opacity: 0.35; cursor: not-allowed; }
+.dropdown-item:disabled:hover { background: transparent; }
 .dropdown-item:focus-visible, .btn:focus-visible, .icon-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
@@ -355,8 +361,12 @@ input[type="color"] {
     min-width: 0;
     width: 100%;
   }
+  /* Row 1 deliberately does NOT scroll — it's precisely tuned (icon-button
+     sizes, gaps, wordmark hidden) to fit exactly, verified at 360-390px
+     widths. overflow-x:auto here would also clip the clipboard dropdown
+     menu below it, since an absolutely-positioned child is still clipped by
+     an ancestor's non-visible overflow. Only the secondary row scrolls. */
   .toolbar-row-primary { border-bottom: 1px solid var(--border); }
-  .toolbar-row-primary,
   .toolbar-row-secondary {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -393,7 +403,15 @@ input[type="color"] {
   .icon-btn { width: 36px; height: 36px; }
   .icon-btn.small { width: 30px; height: 30px; }
   .btn { padding: 9px 12px; }
+  /* Row 1 is the tightest-budget row (see the comment above it) — its icon
+     buttons (Undo/Redo/Copy-Cut-Paste) go a touch smaller than the general
+     mobile size so the row keeps fitting without a scrollbar. */
+  .toolbar-row-primary .icon-btn { width: 30px; height: 30px; }
 
   #statusbar { flex-wrap: wrap; row-gap: 2px; }
-  .copyright { display: none; } /* first to go when the status bar is tight */
+  /* "units: meters" never changes (there's no unit switcher) — it's the more
+     expendable of the two, so it goes instead of the copyright when the
+     status bar is tight. Wrapping (above) catches anything that still
+     doesn't fit rather than clipping it. */
+  .units-label { display: none; }
 }

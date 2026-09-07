@@ -118,6 +118,16 @@ importToggle.onclick = (e) => {
 };
 importMenu.addEventListener('click', (e) => e.stopPropagation());
 
+// ---------------- clipboard dropdown ----------------
+const clipboardToggle = document.getElementById('btn-clipboard-toggle');
+const clipboardMenu = document.getElementById('clipboard-menu');
+clipboardToggle.onclick = (e) => {
+  e.stopPropagation();
+  const isOpen = clipboardMenu.classList.toggle('open');
+  clipboardToggle.setAttribute('aria-expanded', String(isOpen));
+};
+clipboardMenu.addEventListener('click', (e) => e.stopPropagation());
+
 const importObjInput = document.getElementById('import-obj-input');
 const importDxfInput = document.getElementById('import-dxf-input');
 const importImageInput = document.getElementById('import-image-input');
@@ -311,6 +321,7 @@ window.addEventListener('click', () => {
   document.querySelectorAll('.dropdown-menu.open').forEach((m) => m.classList.remove('open'));
   exportToggle.setAttribute('aria-expanded', 'false');
   importToggle.setAttribute('aria-expanded', 'false');
+  clipboardToggle.setAttribute('aria-expanded', 'false');
 });
 
 document.getElementById('btn-export-obj').onclick = () => {
@@ -336,8 +347,28 @@ document.getElementById('btn-export-dxf').onclick = () => {
   downloadText(dxf, 'plan.dxf', 'application/dxf');
 };
 
+document.getElementById('btn-export-stl').onclick = () => {
+  const stl = scene3d.exportSTL();
+  if (!stl) {
+    alert('Nothing to export yet — draw a shape and give it a height above 0 first.');
+    return;
+  }
+  downloadBlob(new Blob([stl], { type: 'model/stl' }), 'model.stl');
+};
+
 function downloadText(text, filename, mime) {
   const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -708,6 +739,89 @@ store.onChange(renderCounts);
 renderCounts();
 
 // ---------------- keyboard shortcuts ----------------
+// ---------------- copy / cut / paste ----------------
+// Kept as local module state rather than in `store.state` — like
+// imageAssets/modelAssets, a clipboard can hold a large asset payload
+// (image data URL, .obj text) that has no business being duplicated into
+// every undo snapshot.
+let clipboard = null; // { kind: 'shapes'|'image'|'model', ...payload, pasteCount }
+const PASTE_OFFSET = 0.5; // meters — so repeated pastes fan out visibly
+
+function hasClipboardSource() {
+  const s = store.state;
+  return s.selection.length > 0 || !!s.selectedImageId || !!s.selectedModelId;
+}
+
+function copySelection() {
+  const s = store.state;
+  if (s.selection.length) {
+    const shapes = s.shapes.filter((sh) => s.selection.includes(sh.id));
+    if (!shapes.length) return;
+    clipboard = { kind: 'shapes', shapes: JSON.parse(JSON.stringify(shapes)), pasteCount: 0 };
+  } else if (s.selectedImageId) {
+    const img = s.images.find((im) => im.id === s.selectedImageId);
+    if (!img) return;
+    clipboard = { kind: 'image', image: { ...img }, dataUrl: store.imageAssets.get(img.id), pasteCount: 0 };
+  } else if (s.selectedModelId) {
+    const model = s.importedModels.find((m) => m.id === s.selectedModelId);
+    if (!model) return;
+    clipboard = { kind: 'model', model: { ...model }, objText: store.modelAssets.get(model.id), pasteCount: 0 };
+  } else {
+    return;
+  }
+  refreshClipboardButtons();
+}
+
+function cutSelection() {
+  if (!hasClipboardSource()) return;
+  copySelection();
+  plan2d._deleteSelection();
+}
+
+function pasteClipboard() {
+  if (!clipboard) return;
+  const off = PASTE_OFFSET * ++clipboard.pasteCount;
+  if (clipboard.kind === 'shapes') {
+    const pasted = clipboard.shapes.map((sh) => {
+      const clone = JSON.parse(JSON.stringify(sh));
+      clone.id = nextId('shape');
+      if (clone.type === 'circle') {
+        clone.center = { x: clone.center.x + off, y: clone.center.y + off };
+      } else {
+        clone.points = clone.points.map((p) => ({ x: p.x + off, y: p.y + off }));
+      }
+      return clone;
+    });
+    store.addShapes(pasted);
+    store.setSelection(pasted.map((sh) => sh.id));
+  } else if (clipboard.kind === 'image') {
+    const img = clipboard.image;
+    store.addImage({ ...img, id: nextId('image'), x: img.x + off, y: img.y + off }, clipboard.dataUrl);
+  } else if (clipboard.kind === 'model') {
+    const model = clipboard.model;
+    const newId = nextId('model');
+    store.addImportedModel({ ...model, id: newId, x: model.x + off, z: model.z + off }, clipboard.objText);
+    store.setSelectedModel(newId); // addImportedModel doesn't auto-select, unlike addImage
+  }
+  refreshClipboardButtons();
+}
+
+const btnCopy = document.getElementById('btn-copy');
+const btnCut = document.getElementById('btn-cut');
+const btnPaste = document.getElementById('btn-paste');
+function refreshClipboardButtons() {
+  btnCopy.disabled = !hasClipboardSource();
+  btnCut.disabled = !hasClipboardSource();
+  btnPaste.disabled = !clipboard;
+}
+store.onChange(refreshClipboardButtons);
+refreshClipboardButtons();
+
+btnCopy.onclick = copySelection;
+btnCut.onclick = cutSelection;
+btnPaste.onclick = pasteClipboard;
+
+// ---------------- keyboard shortcuts ----------------
 const TOOL_KEYS = { v: 'select', l: 'line', r: 'rect', c: 'circle', p: 'polygon', e: 'pushpull' };
 window.addEventListener('keydown', (e) => {
   const el = document.activeElement;
@@ -716,6 +830,9 @@ window.addEventListener('keydown', (e) => {
 
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); store.undo(); return; }
   if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) { e.preventDefault(); store.redo(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') { e.preventDefault(); copySelection(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') { e.preventDefault(); cutSelection(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') { e.preventDefault(); pasteClipboard(); return; }
   if (e.key.toLowerCase() === 'f') { scene3d.frameAll(); plan2d.zoomToFit(); return; }
   const tool = TOOL_KEYS[e.key.toLowerCase()];
   if (tool) store.setTool(tool);

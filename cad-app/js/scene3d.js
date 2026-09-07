@@ -5,7 +5,8 @@ import * as THREE from '../vendor/three/three.module.js';
 import { OrbitControls } from '../vendor/three/controls/OrbitControls.js';
 import { OBJExporter } from '../vendor/three/exporters/OBJExporter.js';
 import { OBJLoader } from '../vendor/three/loaders/OBJLoader.js';
-import { shapePoints } from './geometry.js';
+import { STLExporter } from '../vendor/three/exporters/STLExporter.js';
+import { shapePoints, distToSegment, polygonArea, lineIntersect } from './geometry.js';
 
 const FLAT_PREVIEW_DEPTH = 0.02; // visual thickness for un-extruded (height=0) footprints
 
@@ -316,6 +317,17 @@ export class Scene3D {
   }
 
   // ---- push / pull ----
+  // Grabbing the top face changes the shape's overall height (unchanged from
+  // before). Grabbing a side wall now independently moves just that wall —
+  // for a rect this is one edge sliding in/out; for an arbitrary polygon it's
+  // the standard "offset one edge, re-intersect with its fixed neighbors"
+  // operation; for a circle (no distinct walls) it's a uniform radius change.
+  // The bottom face is deliberately inert — it stays anchored to the layer
+  // floor. Which face was grabbed is read straight from the raycast hit's
+  // face normal: this mesh is a straight, unbeveled ExtrudeGeometry rotated
+  // so world Y is up with no further rotation/scale on the mesh itself, so
+  // a cap's normal.y is ~±1 and a side wall's is ~0 — no fuzzy tolerance
+  // needed, 0.5 cleanly separates the two.
   _onPushPullDown(e) {
     this._setPointer(e);
     this.raycaster.setFromCamera(this.pointer, this.camera);
@@ -323,14 +335,22 @@ export class Scene3D {
     if (!hits.length) return;
 
     const hit = hits[0];
-    const shapeId = hit.object.userData.shapeId;
-    const shape = this.store.state.shapes.find((s) => s.id === shapeId);
+    const shape = this.store.state.shapes.find((s) => s.id === hit.object.userData.shapeId);
     if (!shape || !shape.closed) return;
 
+    const ny = hit.face.normal.y;
+    if (ny >= 0.5) { this._startHeightDrag(shape, hit); return; }
+    if (ny <= -0.5) return; // bottom cap — stays anchored to the floor, out of scope
+    if (shape.type === 'circle') { this._startRadiusDrag(shape, hit); return; }
+    this._startWallDrag(shape, hit);
+  }
+
+  _startHeightDrag(shape, hit) {
     this.controls.enabled = false;
     this.store.snapshot();
     this.pushPull = {
-      shapeId,
+      mode: 'height',
+      shapeId: shape.id,
       startHeight: shape.height || 0,
       grabPoint: hit.point.clone(),
       // A vertical plane through the grab point, facing the camera —
@@ -345,20 +365,108 @@ export class Scene3D {
     this.canvas.style.cursor = 'ns-resize';
   }
 
+  // A circle has no distinct walls — its whole curved side is one surface,
+  // so "push/pull a wall" naturally generalizes to a uniform radius change
+  // driven by the drag point's distance from the shape's center.
+  _startRadiusDrag(shape, hit) {
+    this.controls.enabled = false;
+    this.store.snapshot();
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -hit.point.y);
+    this.pushPull = { mode: 'radius', shapeId: shape.id, plane };
+    this.canvas.style.cursor = 'move';
+  }
+
+  // Rect / polygon: find the grabbed edge, remember its outward normal and
+  // its two fixed neighbor edges (needed to re-intersect after the offset).
+  _startWallDrag(shape, hit) {
+    const pts = shape.points;
+    if (!pts || pts.length < 3) return; // nothing sane to offset (e.g. a 2-point shape)
+
+    // world X = local shape X, world Z = -(local shape Y) — see _buildMesh's
+    // geometry.rotateX(-Math.PI/2); the mesh itself has no other rotation/scale.
+    const localHit = { x: hit.point.x, y: -hit.point.z };
+
+    let bestI = 0, bestD = Infinity;
+    for (let i = 0; i < pts.length; i++) {
+      const d = distToSegment(localHit, pts[i], pts[(i + 1) % pts.length]);
+      if (d < bestD) { bestD = d; bestI = i; }
+    }
+    const i2 = (bestI + 1) % pts.length;
+    const iPrev = (bestI - 1 + pts.length) % pts.length;
+    const iNext = (i2 + 1) % pts.length;
+    const V1 = { ...pts[bestI] };
+    const V2 = { ...pts[i2] };
+    const Vprev = { ...pts[iPrev] };
+    const Vnext = { ...pts[iNext] };
+
+    const edgeDir = { x: V2.x - V1.x, y: V2.y - V1.y };
+    // Outward normal: for a CCW polygon (positive shoelace area) the interior
+    // lies to the left of each directed edge, so outward is (dy, -dx); a CW
+    // polygon flips the sign.
+    const sign = polygonArea(pts) >= 0 ? 1 : -1;
+    let n = { x: sign * edgeDir.y, y: -sign * edgeDir.x };
+    const nLen = Math.hypot(n.x, n.y) || 1;
+    n = { x: n.x / nLen, y: n.y / nLen };
+
+    this.controls.enabled = false;
+    this.store.snapshot();
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -hit.point.y);
+    this.pushPull = {
+      mode: 'wall',
+      shapeId: shape.id,
+      plane,
+      i: bestI, i2,
+      V1, V2, Vprev, Vnext, edgeDir, n,
+      startPoints: pts.map((p) => ({ ...p })),
+      startArea: Math.abs(polygonArea(pts)),
+    };
+    this.canvas.style.cursor = 'move';
+  }
+
   _onPushPullMove(e) {
     this._setPointer(e);
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    const point = new THREE.Vector3();
-    if (!this.raycaster.ray.intersectPlane(this.pushPull.plane, point)) return;
-
-    const deltaY = point.y - this.pushPull.grabPoint.y;
-    const newHeight = Math.max(0, Math.round((this.pushPull.startHeight + deltaY) * 100) / 100);
-
-    const shapeIndex = this.store.state.shapes.findIndex((s) => s.id === this.pushPull.shapeId);
+    const pp = this.pushPull;
+    const shapeIndex = this.store.state.shapes.findIndex((s) => s.id === pp.shapeId);
     const shape = this.store.state.shapes[shapeIndex];
-    const layer = this.store.state.layers.find((l) => l.id === shape.layerId);
     if (!shape) return;
-    shape.height = newHeight;
+    const layer = this.store.state.layers.find((l) => l.id === shape.layerId);
+
+    if (pp.mode === 'height') {
+      const point = new THREE.Vector3();
+      if (!this.raycaster.ray.intersectPlane(pp.plane, point)) return;
+      const deltaY = point.y - pp.grabPoint.y;
+      shape.height = Math.max(0, Math.round((pp.startHeight + deltaY) * 100) / 100);
+      this.onStatus({ pushPullHeight: shape.height });
+    } else if (pp.mode === 'radius') {
+      const point = new THREE.Vector3();
+      if (!this.raycaster.ray.intersectPlane(pp.plane, point)) return;
+      const localX = point.x, localY = -point.z;
+      const r = Math.hypot(localX - shape.center.x, localY - shape.center.y);
+      shape.radius = Math.max(0.05, Math.min(1000, Math.round(r * 100) / 100));
+    } else if (pp.mode === 'wall') {
+      const point = new THREE.Vector3();
+      if (!this.raycaster.ray.intersectPlane(pp.plane, point)) return; // ray ~parallel to the ground plane — skip this frame
+      const localPoint = { x: point.x, y: -point.z };
+      // Signed distance of the drag point from the original edge line, along its outward normal.
+      // Clamped: at a grazing camera angle a ground-plane ray intersection can
+      // shoot out to an extreme, unstable distance for a small mouse move —
+      // this keeps a stray drag from ever corrupting the shape's coordinates.
+      let d = (localPoint.x - pp.V1.x) * pp.n.x + (localPoint.y - pp.V1.y) * pp.n.y;
+      d = Math.max(-500, Math.min(500, d));
+      const shifted = { x: pp.V1.x + pp.n.x * d, y: pp.V1.y + pp.n.y * d };
+
+      const dirPrev = { x: pp.V1.x - pp.Vprev.x, y: pp.V1.y - pp.Vprev.y };
+      const dirNext = { x: pp.Vnext.x - pp.V2.x, y: pp.Vnext.y - pp.V2.y };
+      const newV1 = lineIntersect(pp.Vprev, dirPrev, shifted, pp.edgeDir) ?? { x: pp.V1.x + pp.n.x * d, y: pp.V1.y + pp.n.y * d };
+      const newV2 = lineIntersect(pp.V2, dirNext, shifted, pp.edgeDir) ?? { x: pp.V2.x + pp.n.x * d, y: pp.V2.y + pp.n.y * d };
+
+      const candidate = pp.startPoints.map((p, idx) => (idx === pp.i ? newV1 : idx === pp.i2 ? newV2 : p));
+      const newArea = Math.abs(polygonArea(candidate));
+      if (newArea < pp.startArea * 0.05) return; // reject a collapsing/self-intersecting edit — freeze at the last valid shape
+      shape.points = candidate;
+    }
+
     const mesh = this.meshByShape.get(shape.id);
     if (mesh) {
       this.modelGroup.remove(mesh);
@@ -368,14 +476,13 @@ export class Scene3D {
       this.modelGroup.add(rebuilt);
       this.meshByShape.set(shape.id, rebuilt);
     }
-    this.onStatus({ pushPullHeight: newHeight });
   }
 
   _onPushPullUp() {
     this.pushPull = null;
     this.controls.enabled = true;
     this.canvas.style.cursor = '';
-    this.store.notify(); // sync 2D view + panels with the final height
+    this.store.notify(); // sync 2D view + panels with the final shape
   }
 
   // ---- reference-model select / move / scale ----
@@ -525,6 +632,25 @@ export class Scene3D {
     if (!exportGroup.children.length) return null;
     exportGroup.updateMatrixWorld(true);
     return exporter.parse(exportGroup);
+  }
+
+  // Binary STL of the same solids as exportOBJ() — for 3D printing / CAM tools.
+  exportSTL() {
+    const exporter = new STLExporter();
+    const exportGroup = new THREE.Group();
+    for (const shape of this.store.state.shapes) {
+      if (!shape.closed || !(shape.height > 0)) continue;
+      const mesh = this.meshByShape.get(shape.id);
+      if (!mesh) continue;
+      const bare = new THREE.Mesh(mesh.geometry, mesh.material);
+      bare.position.copy(mesh.position);
+      bare.rotation.copy(mesh.rotation);
+      bare.scale.copy(mesh.scale);
+      exportGroup.add(bare);
+    }
+    if (!exportGroup.children.length) return null;
+    exportGroup.updateMatrixWorld(true);
+    return exporter.parse(exportGroup, { binary: true }); // DataView
   }
 
   // Snapshot the current 3D view as a PNG data URL.

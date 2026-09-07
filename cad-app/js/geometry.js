@@ -108,6 +108,16 @@ export function boundsOf(points) {
   return { minX, minY, maxX, maxY };
 }
 
+// Intersection of two infinite 2D lines, each given as a point + direction.
+// Returns null if the lines are parallel/near-parallel (caller supplies a fallback).
+export function lineIntersect(pA, dA, pB, dB) {
+  const denom = dA.x * dB.y - dA.y * dB.x;
+  if (Math.abs(denom) < 1e-9) return null;
+  const diff = { x: pB.x - pA.x, y: pB.y - pA.y };
+  const t = (diff.x * dB.y - diff.y * dB.x) / denom;
+  return { x: pA.x + t * dA.x, y: pA.y + t * dA.y };
+}
+
 // Shoelace formula — signed area (positive = counter-clockwise in plan coords).
 export function polygonArea(points) {
   let sum = 0;

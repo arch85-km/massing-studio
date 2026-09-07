@@ -476,6 +476,8 @@ export class Plan2D {
       this.store.removeShapes(this.store.state.selection);
     } else if (this.store.state.selectedImageId) {
       this.store.removeImage(this.store.state.selectedImageId);
+    } else if (this.store.state.selectedModelId) {
+      this.store.removeImportedModel(this.store.state.selectedModelId);
     }
   }
 

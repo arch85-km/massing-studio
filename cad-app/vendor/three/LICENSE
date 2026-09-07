@@ -1,5 +1,6 @@
 Studio CAD vendors Three.js (r160, module build) plus the OrbitControls,
-OBJExporter, and OBJLoader addons from the same release, under the MIT License:
+OBJExporter, OBJLoader, and STLExporter addons from the same release, under
+the MIT License:
 
 The MIT License
 
