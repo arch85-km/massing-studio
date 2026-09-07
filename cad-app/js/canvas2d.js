@@ -22,7 +22,7 @@ export class Plan2D {
 
     this.drawPoints = null;     // in-progress polygon/line points (world)
     this.dragStart = null;      // world point where a mousedown began
-    this.dragMode = null;       // 'move' | 'scale' | 'rect' | 'circle' | 'pan' | 'move-image'
+    this.dragMode = null;       // 'move' | 'scale' | 'rect' | 'circle' | 'pan' | 'move-image' | 'scale-image'
     this.dragShapeSnapshot = null;
     this.dragImageSnapshot = null;
     this.cursorWorld = { x: 0, y: 0 };
@@ -188,6 +188,19 @@ export class Plan2D {
       }
     }
 
+    const selectedImage = state.images.find((im) => im.id === state.selectedImageId);
+    if (selectedImage) {
+      const handle = this._imageHandleAtPoint(selectedImage, world);
+      if (handle) {
+        this.store.snapshot(); // one undo step for the whole drag
+        this.dragMode = 'scale-image';
+        this.dragStart = world;
+        this.dragImageSnapshot = { id: selectedImage.id, ...selectedImage };
+        this.scaleCenter = { x: selectedImage.x, y: selectedImage.y };
+        return;
+      }
+    }
+
     const tol = 6 / this.zoom;
     const hit = [...state.shapes].reverse().find((s) => {
       const layer = state.layers.find((l) => l.id === s.layerId);
@@ -220,6 +233,21 @@ export class Plan2D {
   _imageContains(img, world) {
     return world.x >= img.x - img.width / 2 && world.x <= img.x + img.width / 2 &&
            world.y >= img.y - img.height / 2 && world.y <= img.y + img.height / 2;
+  }
+
+  // Same corner-proximity test as _handleAtPoint, for an image's bounding box.
+  _imageHandleAtPoint(img, world) {
+    const corners = {
+      nw: { x: img.x - img.width / 2, y: img.y + img.height / 2 },
+      ne: { x: img.x + img.width / 2, y: img.y + img.height / 2 },
+      sw: { x: img.x - img.width / 2, y: img.y - img.height / 2 },
+      se: { x: img.x + img.width / 2, y: img.y - img.height / 2 },
+    };
+    const tol = (HANDLE_SIZE + 4) / this.zoom;
+    for (const [name, p] of Object.entries(corners)) {
+      if (dist(world, p) <= tol) return name;
+    }
+    return null;
   }
 
   _handleAtPoint(shape, world) {
@@ -280,6 +308,16 @@ export class Plan2D {
       this.store.updateImage(this.dragImageSnapshot.id, {
         x: this.dragImageSnapshot.x + dx,
         y: this.dragImageSnapshot.y + dy,
+      }, { history: false });
+      this._emitStatus();
+      return;
+    }
+
+    if (this.dragMode === 'scale-image' && this.dragImageSnapshot) {
+      const factor = this._scaleFactor(world);
+      this.store.updateImage(this.dragImageSnapshot.id, {
+        width: this.dragImageSnapshot.width * factor,
+        height: this.dragImageSnapshot.height * factor,
       }, { history: false });
       this._emitStatus();
       return;
@@ -497,6 +535,16 @@ export class Plan2D {
         ctx.setLineDash([5, 4]);
         ctx.strokeRect(topLeft.x, topLeft.y, w, h);
         ctx.setLineDash([]);
+        for (const corner of [
+          { x: img.x - img.width / 2, y: img.y + img.height / 2 },
+          { x: img.x + img.width / 2, y: img.y + img.height / 2 },
+          { x: img.x - img.width / 2, y: img.y - img.height / 2 },
+          { x: img.x + img.width / 2, y: img.y - img.height / 2 },
+        ]) {
+          const s = this.worldToScreen(corner);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(s.x - HANDLE_SIZE / 2, s.y - HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE);
+        }
       }
     }
   }

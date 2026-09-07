@@ -27,6 +27,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh; /* accounts for mobile browser chrome (address bar) that vh doesn't; ignored where unsupported, vh above still applies */
 }
 
 button, input {
@@ -46,6 +47,10 @@ button, input {
   flex-wrap: wrap;
   z-index: 10;
 }
+/* The primary/secondary row wrappers exist for the mobile layout only — on
+   desktop `display: contents` makes them invisible to layout, so their
+   children flow straight into #toolbar's own flex row exactly as before. */
+.toolbar-row { display: contents; }
 
 .brand {
   display: flex;
@@ -329,19 +334,38 @@ input[type="color"] {
 @media (max-width: 760px) {
   :root { font-size: 14px; }
 
-  /* A wrapping toolbar turns into 4-5 short unreadable rows on a phone —
-     a single horizontally-scrollable row is the standard mobile pattern
-     (same idea as Figma/Docs' mobile toolbars) and keeps every control
-     reachable with a swipe instead of stacking the page taller. */
-  #toolbar {
-    flex-wrap: nowrap;
+  /* A single scrollable toolbar row hid the view-mode toggle off-screen with
+     no visual hint it existed — after importing something meant for the 3D
+     view, there was no discoverable way to actually see it. Two rows fixes
+     that: the primary row (undo/redo, 2D/Split/3D, export) never scrolls,
+     so it's always reachable; only the secondary row (file ops, draw tools,
+     grid) — used less continuously — scrolls horizontally. */
+  /* min-width: 0 at every nesting level (flex item default is min-width:auto,
+     i.e. "never shrink below content") — without it, a too-wide row doesn't
+     scroll, it just forces #toolbar (and the page) wider than the viewport.
+     align-items: stretch (overriding the base rule's `center`, which sizes
+     each row to its own content instead of the container's width) is what
+     actually caps each row at 390px so overflow-x can kick in. */
+  #toolbar { flex-direction: column; flex-wrap: nowrap; align-items: stretch; padding: 0; gap: 0; min-width: 0; }
+  .toolbar-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    min-width: 0;
+    width: 100%;
+  }
+  .toolbar-row-primary { border-bottom: 1px solid var(--border); }
+  .toolbar-row-primary,
+  .toolbar-row-secondary {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
   }
-  .tool-group { flex-shrink: 0; }
-  .brand { padding-right: 8px; }
-  .brand-text small { display: none; }
+  .tool-group { flex-shrink: 0; padding: 0 4px; }
+  .brand { padding-right: 6px; }
+  .toolbar-row-primary .btn.small { padding: 5px 7px; } /* 2D/Split/3D — a little tighter to leave row 1 headroom */
+  .brand-text { display: none; } /* wordmark takes too much of row 1's tight budget; the ▚ mark alone stays */
   .num-inline { display: none; } /* grid-size number entry — Snap checkbox alone still fits */
 
   /* Canvas is the primary surface on a phone — put it above the sidebar
@@ -354,6 +378,7 @@ input[type="color"] {
     width: 100%;
     min-width: 0;
     max-height: 38vh;
+    max-height: 38dvh;
     border-right: none;
     border-top: 1px solid var(--border);
   }

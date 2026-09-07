@@ -49,7 +49,9 @@ export class Scene3D {
 
     this.raycaster = new THREE.Raycaster();
     this.pointer = new THREE.Vector2();
-    this.pushPull = null; // active drag state
+    this.pushPull = null; // active push/pull drag state
+    this.modelDrag = null; // active reference-model move/scale drag state
+    this.modelHandle = null; // small scale-handle mesh, shown only while a model is selected
 
     this._bindPointer();
 
@@ -135,6 +137,7 @@ export class Scene3D {
     });
 
     this._syncImportedModels(state.importedModels);
+    this._syncModelHandle();
 
     // controls target: keep looking near model center on first build
     if (!this._targetedOnce && state.shapes.length) {
@@ -191,6 +194,36 @@ export class Scene3D {
       obj.position.set(model.x ?? 0, model.y ?? 0, model.z ?? 0);
       obj.scale.setScalar(model.scale ?? 1);
     }
+  }
+
+  // A single small handle at a corner of the selected model's current
+  // bounding box — dragging it scales the model (see _onModelPointerDown).
+  // depthTest:false + a high renderOrder keeps it visible even when it
+  // would otherwise be hidden inside/behind the model's own geometry.
+  _syncModelHandle() {
+    const selectedId = this.store.state.selectedModelId;
+    const obj = selectedId ? this.importedMeshCache.get(selectedId) : null;
+
+    if (!obj) {
+      if (this.modelHandle) {
+        this.scene.remove(this.modelHandle);
+        this.modelHandle.geometry.dispose();
+        this.modelHandle.material.dispose();
+        this.modelHandle = null;
+      }
+      return;
+    }
+
+    if (!this.modelHandle) {
+      this.modelHandle = new THREE.Mesh(
+        new THREE.BoxGeometry(0.3, 0.3, 0.3),
+        new THREE.MeshBasicMaterial({ color: 0xff9d4f, depthTest: false })
+      );
+      this.modelHandle.renderOrder = 999;
+      this.scene.add(this.modelHandle);
+    }
+    const box = new THREE.Box3().setFromObject(obj);
+    this.modelHandle.position.set(box.max.x, box.max.y, box.max.z);
   }
 
   _buildMesh(shape, layer, heightOverride = null, epsilonIndex = 0) {
@@ -253,7 +286,7 @@ export class Scene3D {
     for (const child of mesh.children) this._disposeMesh(child);
   }
 
-  // ---------------- push / pull tool ----------------
+  // ---------------- pointer interaction: push/pull + reference-model move/scale ----------------
   _bindPointer() {
     this.canvas.addEventListener('pointerdown', (e) => this._onPointerDown(e));
     window.addEventListener('pointermove', (e) => this._onPointerMove(e));
@@ -267,7 +300,23 @@ export class Scene3D {
   }
 
   _onPointerDown(e) {
-    if (this.store.state.tool !== 'pushpull') return;
+    const tool = this.store.state.tool;
+    if (tool === 'pushpull') { this._onPushPullDown(e); return; }
+    if (tool === 'select') { this._onModelPointerDown(e); }
+  }
+
+  _onPointerMove(e) {
+    if (this.pushPull) { this._onPushPullMove(e); return; }
+    if (this.modelDrag) { this._onModelDragMove(e); }
+  }
+
+  _onPointerUp() {
+    if (this.pushPull) { this._onPushPullUp(); return; }
+    if (this.modelDrag) { this._onModelDragUp(); }
+  }
+
+  // ---- push / pull ----
+  _onPushPullDown(e) {
     this._setPointer(e);
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const hits = this.raycaster.intersectObjects(this.modelGroup.children, false);
@@ -296,8 +345,7 @@ export class Scene3D {
     this.canvas.style.cursor = 'ns-resize';
   }
 
-  _onPointerMove(e) {
-    if (!this.pushPull) return;
+  _onPushPullMove(e) {
     this._setPointer(e);
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const point = new THREE.Vector3();
@@ -323,12 +371,102 @@ export class Scene3D {
     this.onStatus({ pushPullHeight: newHeight });
   }
 
-  _onPointerUp() {
-    if (!this.pushPull) return;
+  _onPushPullUp() {
     this.pushPull = null;
     this.controls.enabled = true;
     this.canvas.style.cursor = '';
     this.store.notify(); // sync 2D view + panels with the final height
+  }
+
+  // ---- reference-model select / move / scale ----
+  // Clicking a model selects it and starts a ground-plane drag-to-move;
+  // clicking its scale handle (only present while selected) starts a
+  // drag-to-scale instead. Both are gated to the Select tool so they never
+  // compete with push/pull or with normal camera orbiting elsewhere.
+  _onModelPointerDown(e) {
+    this._setPointer(e);
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+
+    if (this.modelHandle) {
+      const handleHits = this.raycaster.intersectObject(this.modelHandle, false);
+      if (handleHits.length) {
+        const model = this.store.state.importedModels.find((m) => m.id === this.store.state.selectedModelId);
+        if (model) {
+          // Distance is measured in screen space (NDC), not 3D world space:
+          // a 3D distance from a ground-plane intersection doesn't track
+          // "dragged toward/away from the object" consistently once the
+          // camera is tilted — it can even shrink while the pointer moves
+          // away on screen. Screen-space distance always behaves the way a
+          // resize handle is expected to, independent of camera angle.
+          const centerNDC = new THREE.Vector3(model.x, model.y, model.z).project(this.camera);
+          const startDist = Math.hypot(this.pointer.x - centerNDC.x, this.pointer.y - centerNDC.y) || 0.0001;
+          this.controls.enabled = false;
+          this.store.snapshot();
+          this.modelDrag = {
+            type: 'scale',
+            modelId: model.id,
+            startScale: model.scale ?? 1,
+            startDist,
+            centerNDC,
+          };
+          this.canvas.style.cursor = 'nwse-resize';
+          return;
+        }
+      }
+    }
+
+    const hits = this.raycaster.intersectObjects(this.importedGroup.children, true);
+    if (!hits.length) return;
+    // OBJLoader returns a nested Group per parsed object — walk up to the
+    // top-level Object3D that importedMeshCache actually tracks.
+    let obj = hits[0].object;
+    while (obj.parent && obj.parent !== this.importedGroup) obj = obj.parent;
+    const entry = [...this.importedMeshCache.entries()].find(([, o]) => o === obj);
+    if (!entry) return;
+    const [modelId] = entry;
+    const model = this.store.state.importedModels.find((m) => m.id === modelId);
+    if (!model) return;
+
+    this.store.setSelectedModel(modelId);
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -model.y);
+    const grab = new THREE.Vector3();
+    this.raycaster.ray.intersectPlane(plane, grab);
+    this.controls.enabled = false;
+    this.store.snapshot();
+    this.modelDrag = { type: 'move', modelId, startX: model.x, startZ: model.z, grab, plane };
+    this.canvas.style.cursor = 'move';
+  }
+
+  _onModelDragMove(e) {
+    this._setPointer(e);
+
+    if (this.modelDrag.type === 'move') {
+      this.raycaster.setFromCamera(this.pointer, this.camera);
+      const point = new THREE.Vector3();
+      if (!this.raycaster.ray.intersectPlane(this.modelDrag.plane, point)) return;
+      const dx = point.x - this.modelDrag.grab.x;
+      const dz = point.z - this.modelDrag.grab.z;
+      this.store.updateImportedModel(this.modelDrag.modelId, {
+        x: this.modelDrag.startX + dx,
+        z: this.modelDrag.startZ + dz,
+      }, { history: false });
+      return;
+    }
+
+    // 'scale' — screen-space distance from the model's (fixed) projected
+    // center to the pointer; see the comment where startDist is computed.
+    const { centerNDC } = this.modelDrag;
+    const dist = Math.hypot(this.pointer.x - centerNDC.x, this.pointer.y - centerNDC.y) || 0.0001;
+    const factor = dist / this.modelDrag.startDist;
+    const scale = Math.max(0.01, this.modelDrag.startScale * factor);
+    this.store.updateImportedModel(this.modelDrag.modelId, { scale }, { history: false });
+  }
+
+  _onModelDragUp() {
+    this.modelDrag = null;
+    this.controls.enabled = true;
+    this.canvas.style.cursor = '';
+    this.store.notify(); // sync the Reference Model properties panel with the final position/scale
   }
 
   // ---------------- camera helpers ----------------

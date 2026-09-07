@@ -9,69 +9,81 @@
 </head>
 <body>
   <header id="toolbar">
-    <div class="brand">
-      <span class="brand-mark">▚</span>
-      <div class="brand-text">
-        <strong>CAD Drawing</strong>
-        <small>plan &rarr; extrude &rarr; export</small>
-      </div>
-    </div>
-
-    <div class="tool-group" role="group" aria-label="File">
-      <button id="btn-new" class="btn" title="New drawing">New</button>
-      <button id="btn-save" class="btn" title="Save project as JSON">Save</button>
-      <button id="btn-load" class="btn" title="Load a saved project">Open</button>
-      <input id="load-input" type="file" accept=".json,.cadproj.json" hidden />
-      <div class="dropdown" id="import-dropdown">
-        <button id="btn-import-toggle" class="btn" title="Import a file into the drawing" aria-haspopup="true" aria-expanded="false">Import ▾</button>
-        <div class="dropdown-menu" id="import-menu" role="menu">
-          <button class="dropdown-item" id="btn-import-obj" role="menuitem" title="Add a .obj model as a static 3D reference">Import .OBJ</button>
-          <button class="dropdown-item" id="btn-import-dxf" role="menuitem" title="Add a DXF drawing's lines, circles and polylines as editable shapes">Import .DXF</button>
-          <button class="dropdown-item" id="btn-import-image" role="menuitem" title="Add an image as a traceable underlay in the 2D plan">Import Image</button>
+    <!-- Row order matters only on mobile (see the max-width:760px CSS): this
+         row holds the controls that must always be reachable without a
+         scroll — undo/redo, the view toggle (without it a phone can get
+         stuck on 2D with no visible way to see an imported 3D model), and
+         export. On desktop `.toolbar-row{display:contents}` makes this
+         wrapper invisible to layout, so nothing changes there. -->
+    <div class="toolbar-row toolbar-row-primary">
+      <div class="brand">
+        <span class="brand-mark">▚</span>
+        <div class="brand-text">
+          <strong>CAD Drawing</strong>
+          <small>plan &rarr; extrude &rarr; export</small>
         </div>
       </div>
-      <input id="import-obj-input" type="file" accept=".obj" hidden />
-      <input id="import-dxf-input" type="file" accept=".dxf" hidden />
-      <input id="import-image-input" type="file" accept="image/*" hidden />
-    </div>
 
-    <div class="tool-group" role="group" aria-label="Edit">
-      <button id="btn-undo" class="icon-btn" title="Undo (Ctrl+Z)">↶</button>
-      <button id="btn-redo" class="icon-btn" title="Redo (Ctrl+Shift+Z)">↷</button>
-    </div>
+      <div class="tool-group" role="group" aria-label="Edit">
+        <button id="btn-undo" class="icon-btn" title="Undo (Ctrl+Z)">↶</button>
+        <button id="btn-redo" class="icon-btn" title="Redo (Ctrl+Shift+Z)">↷</button>
+      </div>
 
-    <div class="tool-group" role="group" aria-label="Draw tools">
-      <button class="btn" data-tool="select" title="Select / Move / Scale (V)">Select</button>
-      <button class="btn" data-tool="line" title="Reference line (L)">Line</button>
-      <button class="btn" data-tool="rect" title="Rectangle (R)">Rectangle</button>
-      <button class="btn" data-tool="circle" title="Circle (C)">Circle</button>
-      <button class="btn" data-tool="polygon" title="Polygon — click points, Enter/double-click to close (P)">Polygon</button>
-      <button class="btn" data-tool="pushpull" title="Push / Pull — drag a shape's top face in the 3D view to extrude (E)">Push/Pull</button>
-    </div>
+      <div class="tool-group" role="group" aria-label="View mode">
+        <button class="btn small" data-view="2d" title="Plan only">2D</button>
+        <button class="btn small" data-view="split" title="Split view">Split</button>
+        <button class="btn small" data-view="3d" title="Model only">3D</button>
+      </div>
 
-    <div class="tool-group" role="group" aria-label="Grid">
-      <label class="chk"><input id="toggle-snap" type="checkbox" /> Snap</label>
-      <label class="num-inline">Grid
-        <input id="grid-size" type="number" step="0.1" min="0.1" value="1" />m
-      </label>
-    </div>
+      <div class="tool-group grow-spacer"></div>
 
-    <div class="tool-group" role="group" aria-label="View mode">
-      <button class="btn small" data-view="2d" title="Plan only">2D</button>
-      <button class="btn small" data-view="split" title="Split view">Split</button>
-      <button class="btn small" data-view="3d" title="Model only">3D</button>
-    </div>
-
-    <div class="tool-group grow-spacer"></div>
-
-    <div class="tool-group" role="group" aria-label="Export">
-      <div class="dropdown" id="export-dropdown">
-        <button id="btn-export-toggle" class="btn primary" title="Export the drawing" aria-haspopup="true" aria-expanded="false">Export ▾</button>
-        <div class="dropdown-menu" id="export-menu" role="menu">
-          <button class="dropdown-item" id="btn-export-obj" role="menuitem" title="Export extruded solids as .obj">Export .OBJ</button>
-          <button class="dropdown-item" id="btn-export-png" role="menuitem" title="Export the current 3D view as an image">Export .PNG</button>
-          <button class="dropdown-item" id="btn-export-dxf" role="menuitem" title="Export the 2D plan as a DXF drawing">Export .DXF</button>
+      <div class="tool-group" role="group" aria-label="Export">
+        <div class="dropdown" id="export-dropdown">
+          <button id="btn-export-toggle" class="btn primary" title="Export the drawing" aria-haspopup="true" aria-expanded="false">Export ▾</button>
+          <div class="dropdown-menu" id="export-menu" role="menu">
+            <button class="dropdown-item" id="btn-export-obj" role="menuitem" title="Export extruded solids as .obj">Export .OBJ</button>
+            <button class="dropdown-item" id="btn-export-png" role="menuitem" title="Export the current 3D view as an image">Export .PNG</button>
+            <button class="dropdown-item" id="btn-export-dxf" role="menuitem" title="Export the 2D plan as a DXF drawing">Export .DXF</button>
+          </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Secondary row: used less continuously than the row above, so on
+         mobile this is the one that scrolls horizontally instead. -->
+    <div class="toolbar-row toolbar-row-secondary">
+      <div class="tool-group" role="group" aria-label="File">
+        <button id="btn-new" class="btn" title="New drawing">New</button>
+        <button id="btn-save" class="btn" title="Save project as JSON">Save</button>
+        <button id="btn-load" class="btn" title="Load a saved project">Open</button>
+        <input id="load-input" type="file" accept=".json,.cadproj.json" hidden />
+        <div class="dropdown" id="import-dropdown">
+          <button id="btn-import-toggle" class="btn" title="Import a file into the drawing" aria-haspopup="true" aria-expanded="false">Import ▾</button>
+          <div class="dropdown-menu" id="import-menu" role="menu">
+            <button class="dropdown-item" id="btn-import-obj" role="menuitem" title="Add a .obj model as a static 3D reference">Import .OBJ</button>
+            <button class="dropdown-item" id="btn-import-dxf" role="menuitem" title="Add a DXF drawing's lines, circles and polylines as editable shapes">Import .DXF</button>
+            <button class="dropdown-item" id="btn-import-image" role="menuitem" title="Add an image as a traceable underlay in the 2D plan">Import Image</button>
+          </div>
+        </div>
+        <input id="import-obj-input" type="file" accept=".obj" hidden />
+        <input id="import-dxf-input" type="file" accept=".dxf" hidden />
+        <input id="import-image-input" type="file" accept="image/*" hidden />
+      </div>
+
+      <div class="tool-group" role="group" aria-label="Draw tools">
+        <button class="btn" data-tool="select" title="Select / Move / Scale (V)">Select</button>
+        <button class="btn" data-tool="line" title="Reference line (L)">Line</button>
+        <button class="btn" data-tool="rect" title="Rectangle (R)">Rectangle</button>
+        <button class="btn" data-tool="circle" title="Circle (C)">Circle</button>
+        <button class="btn" data-tool="polygon" title="Polygon — click points, Enter/double-click to close (P)">Polygon</button>
+        <button class="btn" data-tool="pushpull" title="Push / Pull — drag a shape's top face in the 3D view to extrude (E)">Push/Pull</button>
+      </div>
+
+      <div class="tool-group" role="group" aria-label="Grid">
+        <label class="chk"><input id="toggle-snap" type="checkbox" /> Snap</label>
+        <label class="num-inline">Grid
+          <input id="grid-size" type="number" step="0.1" min="0.1" value="1" />m
+        </label>
       </div>
     </div>
   </header>
