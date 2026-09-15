@@ -1,10 +1,6 @@
-Massing Studio vendors Three.js (r160, module build) plus the OrbitControls,
-OBJExporter, OBJLoader, and STLExporter addons from the same release, under
-the MIT License:
+MIT License
 
-The MIT License
-
-Copyright © 2010-2024 three.js authors
+Copyright (c) 2026 Karam Al-Obaidi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -24,4 +20,10 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-Source: https://github.com/mrdoob/three.js  (version 0.160.1)
+---
+
+This license covers Massing Studio's own source code. It does not cover the
+vendored Three.js library and addons under vendor/three/, which remain under
+their own upstream MIT license and copyright (see vendor/three/LICENSE), nor
+documentation, screenshots, and exercises, which are licensed separately
+under CC BY 4.0 (see LICENSE-DOCS).

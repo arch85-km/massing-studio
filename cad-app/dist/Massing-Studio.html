@@ -1,8 +1,9 @@
+<!-- Massing Studio v1.0.0 — 2026-09-15 -->
 <!doctype html>
 <html lang="en">
 <head>
   <!--
-Studio CAD vendors Three.js (r160, module build) plus the OrbitControls,
+Massing Studio vendors Three.js (r160, module build) plus the OrbitControls,
 OBJExporter, OBJLoader, and STLExporter addons from the same release, under
 the MIT License:
 
@@ -29,10 +30,18 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
 Source: https://github.com/mrdoob/three.js  (version 0.160.1)
+
+Massing Studio's own source code is MIT licensed (see LICENSE in the
+project repository). Accompanying documentation, screenshots, and
+exercises are licensed separately under CC BY 4.0 (see LICENSE-DOCS),
+https://creativecommons.org/licenses/by/4.0/
   -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CAD Drawing</title>
+  <title>Massing Studio</title>
+  <meta name="description" content="Massing Studio — a browser-based plan drawing and extrusion tool." />
+  <meta name="version" content="1.0.0" />
+  <meta name="date" content="2026-09-15" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230d1117'/%3E%3Cpath d='M20 70 L20 30 L50 15 L80 30 L80 70 L50 85 Z' fill='none' stroke='%234fa3ff' stroke-width='6'/%3E%3Cpath d='M20 30 L50 45 L80 30 M50 45 L50 85' fill='none' stroke='%234fa3ff' stroke-width='6'/%3E%3C/svg%3E" />
   <style>
 :root {
@@ -455,6 +464,7 @@ input[type="color"] {
   </style>
 </head>
 <body>
+<body>
   <header id="toolbar">
     <!-- Row order matters only on mobile (see the max-width:760px CSS): this
          row holds the controls that must always be reachable without a
@@ -466,8 +476,8 @@ input[type="color"] {
       <div class="brand">
         <span class="brand-mark">▚</span>
         <div class="brand-text">
-          <strong>CAD Drawing</strong>
-          <small>plan &rarr; extrude &rarr; export</small>
+          <strong>Massing Studio</strong>
+          <small>browser-based plan &amp; extrusion tool</small>
         </div>
       </div>
 
@@ -556,11 +566,13 @@ input[type="color"] {
         <ul class="help-list">
           <li><b>Draw:</b> pick a tool, click in the plan view</li>
           <li><b>Polygon:</b> click each vertex, Enter / double-click / click near start to close</li>
-          <li><b>Extrude:</b> set a height in Properties, or use Push/Pull in the 3D view</li>
+          <li><b>Extrude:</b> set a height in Properties, or use Push/Pull in the 3D view — drag the top face for height, any side wall to move just that wall</li>
           <li><b>Import:</b> .obj as a 3D reference, .dxf as editable shapes, or an image to trace over</li>
+          <li><b>Copy / Cut / Paste:</b> Ctrl+C / Ctrl+X / Ctrl+V, or the toolbar menu next to Undo/Redo</li>
           <li><b>Pan:</b> space+drag or middle-mouse · <b>Zoom:</b> scroll</li>
           <li><b>Orbit (3D):</b> left-drag · <b>Pan:</b> right-drag</li>
         </ul>
+        <div class="panel-hint">Massing Studio v1.0.0 · 2026-09-15</div>
       </div>
     </aside>
 
