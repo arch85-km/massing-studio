@@ -3,7 +3,7 @@
 # self-contained dist/Massing-Studio.html — no separate asset files to
 # host, so it can be dropped straight into a website.
 set -euo pipefail
-cd "$(dirname "$0")/../cad-app"
+cd "$(dirname "$0")/.."
 
 OUT="dist/Massing-Studio.html"
 mkdir -p "$(dirname "$OUT")"
