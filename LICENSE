@@ -19,11 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
-
----
-
-This license covers Massing Studio's own source code. It does not cover the
-vendored Three.js library and addons under vendor/three/, which remain under
-their own upstream MIT license and copyright (see vendor/three/LICENSE), nor
-documentation, screenshots, and exercises, which are licensed separately
-under CC BY 4.0 (see LICENSE-DOCS).
