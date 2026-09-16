@@ -1,0 +1,729 @@
+<!-- ==========================================================================
+     Massing Studio — Method Notes
+     Paste into an Elementor "HTML" widget (Elements > HTML).
+
+     Everything is scoped to .ms-doc, so nothing here can touch the rest of
+     your theme. Body text inherits your site's font and headings are set to
+     Poppins to match the site's own headings (--ms-fd, one line to change);
+     only the data — formulas, tables, the BibTeX block — is monospace.
+     To follow the visitor's dark-mode setting, change the opening tag to
+     <div class="ms-doc ms-auto-dark">. Default is light only, which is the
+     safe choice on a light site.
+
+     Same structure and palette as the Construction Studio notes, so the two
+     pages read as one family on the site.
+     © Karam Al-Obaidi
+     ========================================================================== -->
+
+<style>
+
+.ms-doc{
+  --ms-paper:#F1F2EE; --ms-surface:#FBFBF9; --ms-surface2:#E8EAE4;
+  --ms-ink:#16191B; --ms-ink2:#4C555A; --ms-ink3:#5F696E;
+  --ms-rule:#D6D9D1; --ms-rule2:#E5E7E1;
+  --ms-accent:#1D5A73; --ms-accent-soft:rgba(29,90,115,.10);
+  --ms-ok:#3F6B47;  --ms-ok-soft:rgba(63,107,71,.12);
+  --ms-warn:#8A6410;--ms-warn-soft:rgba(138,100,16,.13);
+  --ms-no:#8E3A32;  --ms-no-soft:rgba(142,58,50,.11);
+  --ms-fd:"Poppins",system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --ms-fb:inherit;
+  --ms-fm:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --ms-measure:90ch; --ms-rail:4.75rem;
+
+  background:var(--ms-paper); color:var(--ms-ink);
+  font-family:var(--ms-fb); font-size:17px; line-height:1.65; font-weight:400;
+  max-width:1040px; margin:0 auto; padding:0 20px 4rem;
+  -webkit-font-smoothing:antialiased; text-align:left;
+}
+@media (prefers-color-scheme:dark){
+  .ms-doc.ms-auto-dark{
+    --ms-paper:#121517; --ms-surface:#191D20; --ms-surface2:#21262A;
+    --ms-ink:#E9EBE6; --ms-ink2:#A6AFB4; --ms-ink3:#79838A;
+    --ms-rule:#2C3235; --ms-rule2:#232829;
+    --ms-accent:#74B6D0; --ms-accent-soft:rgba(116,182,208,.14);
+    --ms-ok:#7FB88C;  --ms-ok-soft:rgba(127,184,140,.14);
+    --ms-warn:#D6A748;--ms-warn-soft:rgba(214,167,72,.15);
+    --ms-no:#DD8479;  --ms-no-soft:rgba(221,132,121,.14);
+  }
+}
+
+/* local reset — only inside .ms-doc */
+.ms-doc *,.ms-doc *::before,.ms-doc *::after{box-sizing:border-box;}
+.ms-doc h1,.ms-doc h2,.ms-doc h3,.ms-doc h4,.ms-doc p,.ms-doc ul,.ms-doc ol,
+.ms-doc dl,.ms-doc dt,.ms-doc dd,.ms-doc table,.ms-doc figure{margin:0;padding:0;}
+.ms-doc ul,.ms-doc ol{list-style-position:outside;}
+.ms-doc li{margin:0;}
+.ms-doc img{max-width:100%;height:auto;}
+.ms-doc a{color:var(--ms-accent);text-decoration:underline;text-underline-offset:2px;}
+.ms-doc a:focus-visible{outline:2px solid var(--ms-accent);outline-offset:3px;}
+.ms-doc .ms-sechead{scroll-margin-top:5rem;}
+.ms-doc .ms-sechead:target h2{background:var(--ms-hl,rgba(127,127,127,.14));}
+.ms-doc code,.ms-doc .ms-mono{font-family:var(--ms-fm);font-size:.855em;}
+.ms-doc b,.ms-doc strong{font-weight:600;}
+.ms-doc code{background:var(--ms-accent-soft);color:var(--ms-accent);
+  padding:.1em .34em;border-radius:2px;border:0;}
+
+/* masthead */
+.ms-doc .ms-masthead{padding:3.5rem 0 2.25rem;border-bottom:2px solid var(--ms-ink);}
+.ms-doc h1{font-family:var(--ms-fd);font-weight:600;
+  font-size:clamp(2.1rem,6.2vw,3.35rem);line-height:1.02;letter-spacing:-.028em;
+  text-wrap:balance;margin:0 0 1.1rem;color:var(--ms-ink);}
+.ms-doc .ms-standfirst{max-width:var(--ms-measure);font-size:1.14rem;line-height:1.6;
+  color:var(--ms-ink2);margin:0;}
+.ms-doc .ms-standfirst strong{color:var(--ms-ink);font-weight:600;}
+.ms-doc .ms-byline{display:flex;flex-wrap:wrap;gap:.5rem 1.6rem;margin-top:1.9rem;
+  font-family:var(--ms-fm);font-size:.74rem;letter-spacing:.04em;color:var(--ms-ink3);}
+.ms-doc .ms-byline b{color:var(--ms-ink2);font-weight:500;}
+
+/* trap notice */
+.ms-doc .ms-traps{margin:2.5rem 0;border:1px solid var(--ms-rule);
+  border-left:4px solid var(--ms-no);background:var(--ms-surface);padding:1.5rem 1.6rem;}
+.ms-doc .ms-traps h2{font-family:var(--ms-fd);font-size:.82rem;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--ms-no);margin:0 0 .9rem;}
+.ms-doc .ms-traps ol{margin:0;padding-left:1.15rem;display:grid;gap:.6rem;}
+.ms-doc .ms-traps li{max-width:var(--ms-measure);}
+
+/* sections */
+.ms-doc .ms-sec{padding:3.25rem 0 0;}
+.ms-doc .ms-sechead{display:grid;grid-template-columns:var(--ms-rail) 1fr;
+  align-items:baseline;gap:0 1rem;border-top:1px solid var(--ms-rule);
+  padding-top:1.4rem;margin-bottom:1.6rem;}
+.ms-doc .ms-secnum{font-family:var(--ms-fm);font-size:.95rem;font-weight:600;
+  color:var(--ms-accent);letter-spacing:.02em;font-variant-numeric:tabular-nums;}
+.ms-doc .ms-sechead h2{font-family:var(--ms-fd);font-weight:600;
+  font-size:clamp(1.45rem,3.3vw,1.95rem);line-height:1.12;letter-spacing:-.02em;
+  text-wrap:balance;margin:0;color:var(--ms-ink);}
+.ms-doc .ms-secbody{display:grid;grid-template-columns:var(--ms-rail) minmax(0,1fr);gap:0 1rem;}
+.ms-doc .ms-secbody>*{grid-column:2;}
+.ms-doc .ms-secbody>p,.ms-doc .ms-secbody>ul,.ms-doc .ms-secbody>ol{max-width:var(--ms-measure);}
+.ms-doc .ms-secbody>p{margin:0 0 1.05rem;}
+.ms-doc .ms-secbody>ul,.ms-doc .ms-secbody>ol{margin:0 0 1.15rem;padding-left:1.15rem;
+  display:grid;gap:.5rem;}
+.ms-doc h3{font-family:var(--ms-fd);font-weight:600;font-size:1.06rem;
+  letter-spacing:-.005em;margin:1.9rem 0 .7rem;color:var(--ms-ink);}
+.ms-doc .ms-secbody>h3:first-child{margin-top:0;}
+.ms-doc h4{font-family:var(--ms-fm);font-weight:600;font-size:.74rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ms-ink3);margin:1.6rem 0 .6rem;}
+
+.ms-doc .ms-formula{font-family:var(--ms-fm);font-size:.84rem;line-height:1.75;
+  background:var(--ms-surface);border:1px solid var(--ms-rule);
+  border-left:3px solid var(--ms-accent);padding:.95rem 1.1rem;margin:0 0 1.2rem;
+  overflow-x:auto;white-space:pre;color:var(--ms-ink);}
+.ms-doc .ms-formula em{color:var(--ms-ink3);font-style:normal;}
+.ms-doc .ms-note{font-size:.9rem;color:var(--ms-ink2);border-left:2px solid var(--ms-rule);
+  padding-left:.95rem;margin:0 0 1.2rem;max-width:var(--ms-measure);}
+
+/* tables */
+.ms-doc .ms-tbl{overflow-x:auto;margin:0 0 1.4rem;border:1px solid var(--ms-rule);
+  background:var(--ms-surface);}
+.ms-doc .ms-tbl table{border-collapse:collapse;width:100%;font-size:.845rem;
+  line-height:1.45;background:transparent;}
+.ms-doc .ms-tbl th,.ms-doc .ms-tbl td{padding:.5rem .7rem;text-align:left;
+  vertical-align:top;border:0;border-bottom:1px solid var(--ms-rule2);color:var(--ms-ink);}
+.ms-doc .ms-tbl thead th{font-family:var(--ms-fm);font-size:.68rem;font-weight:600;
+  letter-spacing:.07em;text-transform:uppercase;color:var(--ms-ink3);
+  background:var(--ms-surface2);border-bottom:1px solid var(--ms-rule);white-space:nowrap;}
+.ms-doc .ms-tbl tbody tr:last-child td{border-bottom:0;}
+.ms-doc .ms-tbl tbody tr{background:transparent;}
+.ms-doc .ms-tbl .ms-n{text-align:right;font-family:var(--ms-fm);
+  font-variant-numeric:tabular-nums;white-space:nowrap;}
+.ms-doc .ms-tbl .ms-p{font-family:var(--ms-fm);font-size:.8rem;white-space:nowrap;}
+.ms-doc .ms-tbl .ms-d{font-family:var(--ms-fm);font-variant-numeric:tabular-nums;
+  white-space:nowrap;color:var(--ms-accent);font-weight:500;text-align:right;}
+.ms-doc .ms-tbl caption{caption-side:bottom;text-align:left;padding:.6rem .7rem;
+  font-size:.78rem;color:var(--ms-ink3);border-top:1px solid var(--ms-rule2);}
+
+/* chips + ledger */
+.ms-doc .ms-chip{display:inline-block;font-family:var(--ms-fm);font-size:.64rem;
+  font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:.15em .5em;
+  border-radius:2px;white-space:nowrap;}
+.ms-doc .ms-chip.is-in{background:var(--ms-ok-soft);color:var(--ms-ok);}
+.ms-doc .ms-chip.is-part{background:var(--ms-warn-soft);color:var(--ms-warn);}
+.ms-doc .ms-chip.is-out{background:var(--ms-no-soft);color:var(--ms-no);}
+.ms-doc .ms-ledger{display:grid;gap:0;border:1px solid var(--ms-rule);
+  background:var(--ms-surface);margin-bottom:1.4rem;}
+.ms-doc .ms-ledger>div{display:grid;grid-template-columns:7.5rem minmax(0,1fr);
+  gap:.2rem .9rem;padding:.8rem 1rem;border-bottom:1px solid var(--ms-rule2);}
+.ms-doc .ms-ledger>div:last-child{border-bottom:0;}
+.ms-doc .ms-ledger dt{font-family:var(--ms-fd);font-weight:600;font-size:.95rem;
+  grid-column:2;margin:0;color:var(--ms-ink);}
+.ms-doc .ms-ledger .ms-chip{grid-row:1;grid-column:1;align-self:start;margin-top:.18rem;}
+.ms-doc .ms-ledger dd{grid-column:2;margin:0;font-size:.93rem;color:var(--ms-ink2);
+  line-height:1.55;}
+
+/* exercises */
+.ms-doc .ms-ex{border:1px solid var(--ms-rule);background:var(--ms-surface);
+  padding:1.5rem 1.6rem;margin-bottom:1.5rem;}
+.ms-doc .ms-ex-n{font-family:var(--ms-fm);font-size:.7rem;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--ms-accent);
+  display:block;margin-bottom:.35rem;}
+.ms-doc .ms-ex h3{margin:0 0 .9rem;font-size:1.18rem;}
+.ms-doc .ms-steps{margin:0;padding-left:1.2rem;display:grid;gap:.5rem;font-size:.95rem;}
+.ms-doc .ms-steps code{font-size:.8rem;}
+.ms-doc .ms-principle{font-size:.93rem;color:var(--ms-ink2);
+  border-top:1px solid var(--ms-rule2);padding-top:.85rem;margin:.95rem 0 0;}
+.ms-doc .ms-principle b{color:var(--ms-ink);font-weight:600;}
+
+/* footer */
+.ms-doc .ms-footer{margin-top:4rem;padding-top:1.6rem;border-top:2px solid var(--ms-ink);
+  font-size:.86rem;color:var(--ms-ink2);}
+.ms-doc .ms-footer p{max-width:var(--ms-measure);margin:0 0 .8rem;}
+.ms-doc .ms-cite{font-family:var(--ms-fm);font-size:.78rem;color:var(--ms-ink3);line-height:1.7;}
+.ms-doc .ms-refs{max-width:var(--ms-measure);margin:0 0 1.2rem;padding-left:1.15rem;
+  display:grid;gap:.55rem;font-size:.9rem;color:var(--ms-ink2);}
+.ms-doc .ms-refs b{color:var(--ms-ink);font-weight:600;}
+.ms-doc .ms-ref{border-left:2px solid var(--ms-rule);padding-left:.95rem;margin:0 0 1rem;
+  max-width:var(--ms-measure);font-size:.92rem;color:var(--ms-ink2);}
+.ms-doc pre{margin:0 0 1rem;padding:.9rem 1rem;background:var(--ms-surface);
+  border:1px solid var(--ms-rule);overflow-x:auto;font-family:var(--ms-fm);
+  font-size:.78rem;line-height:1.6;color:var(--ms-ink);white-space:pre;}
+
+@media (max-width:720px){
+  .ms-doc{--ms-rail:0px;font-size:16px;}
+  .ms-doc .ms-sechead{grid-template-columns:1fr;gap:.35rem;}
+  .ms-doc .ms-secbody{grid-template-columns:minmax(0,1fr);}
+  .ms-doc .ms-secbody>*{grid-column:1;}
+  .ms-doc .ms-traps,.ms-doc .ms-ex{padding:1.15rem;}
+}
+@media (max-width:560px){
+  .ms-doc .ms-ledger>div{grid-template-columns:1fr;}
+  .ms-doc .ms-ledger .ms-chip{grid-row:auto;grid-column:1;justify-self:start;margin-bottom:.3rem;}
+  .ms-doc .ms-ledger dt,.ms-doc .ms-ledger dd{grid-column:1;}
+}
+@media (prefers-reduced-motion:reduce){
+  .ms-doc *{animation-duration:.01ms !important;transition-duration:.01ms !important;}
+}
+</style>
+
+<div class="ms-doc">
+
+  <div class="ms-masthead">
+    <h1>Massing Studio &mdash; Method Notes</h1>
+    <p class="ms-standfirst">
+      What this tool computes, how it computes it, and — the part that matters most when you
+      cite it — <strong>what it does not model at all</strong>. Everything below is read from the
+      source code, not from what a plan-and-extrude tool is generally assumed to do. Where the
+      code makes something unclear, this page says so rather than inferring.
+    </p>
+    <div class="ms-byline">
+      <span><b>Audience</b> Architecture students and staff</span>
+      <span><b>Method</b> Plan drawing &middot; straight extrusion &middot; no analysis</span>
+      <span><b>Runs</b> Entirely in the browser</span>
+      <span><b>Updated</b> 15 September 2026</span>
+    </div>
+  </div>
+
+  <div class="ms-traps">
+    <h2>Three things to know before you cite a number</h2>
+    <ol>
+      <li><b>Snapping only ever happens once, when a shape is first drawn.</b> The Select
+        tool's move and scale handles read the pointer position directly and never call the
+        snapping function at all, whatever the Snap checkbox says. Draw a rectangle with Snap
+        on and its corners land on exact multiples of the grid (1&nbsp;m by default) — but drag
+        that same rectangle, or resize it by a corner handle, and it can end up anywhere: off
+        the grid, at an arbitrary fraction of a metre, with nothing on screen to say so and no
+        way to snap it back afterwards. Snapping to an existing shape's own vertex is stronger
+        still: it is checked before the grid, and fires whether or not Snap is on. A coordinate
+        read off this tool is the grid's answer only for a shape that has never been moved.</li>
+      <li><b>There is no area anywhere in the interface.</b> The tool computes a signed polygon
+        area internally — the shoelace formula, positive for one winding direction — but only to
+        work out which way an edge faces and to stop a push/pull drag from folding a shape in on
+        itself. It is never shown on screen, never in a properties panel, never in an export. If
+        you want the area of a footprint you have drawn, you compute it yourself from its
+        coordinates; nothing this tool writes down should be mistaken for one.</li>
+      <li><b>Nothing here is analysis.</b> The tool draws a plan, extrudes it by a height, and
+        exports the result. No module computes a structural, thermal, daylight or cost quantity
+        of any kind, and there is no solver — iterative or otherwise — anywhere in the source.</li>
+    </ol>
+  </div>
+
+  <!-- 01 -->
+  <div class="ms-sec">
+    <div class="ms-sechead" id="ms-01"><span class="ms-secnum">01</span><h2>What it computes</h2></div>
+    <div class="ms-secbody">
+      <p>Eight things, and none of them is more than a few lines of arithmetic. There is no
+        solver anywhere in this application — no stiffness matrix, no finite elements, no
+        iteration of any kind.</p>
+
+      <div class="ms-tbl"><table>
+        <thead><tr><th>Quantity</th><th>From</th><th>Used for</th></tr></thead>
+        <tbody>
+          <tr><td><b>Snapped coordinate</b></td><td class="ms-p">round(value &divide; grid) &times; grid, each axis</td><td>Placing a point when a shape is first drawn — only then, see trap&nbsp;1</td></tr>
+          <tr><td><b>Distance</b></td><td class="ms-p">&radic;(&Delta;x&sup2; + &Delta;y&sup2;)</td><td>Vertex snapping, handle hit-testing, drag scale factors</td></tr>
+          <tr><td><b>Polygon area (signed)</b></td><td class="ms-p">shoelace sum &divide; 2</td><td>Internal only — edge winding direction and a collapse guard inside wall push/pull, see trap&nbsp;2</td></tr>
+          <tr><td><b>Centroid</b></td><td class="ms-p">arithmetic mean of the vertices</td><td>The centre a shape scales from when you drag a corner handle</td></tr>
+          <tr><td><b>Bounds</b></td><td class="ms-p">min/max x, min/max y</td><td>Placing a shape's corner-scale handles</td></tr>
+          <tr><td><b>Segment distance</b></td><td class="ms-p">clamped projection onto a segment</td><td>Click hit-testing against a shape's outline</td></tr>
+          <tr><td><b>Line intersection</b></td><td class="ms-p">two infinite lines; null if nearly parallel</td><td>Rebuilding a polygon's two neighbouring corners after a wall push/pull edge offset</td></tr>
+          <tr><td><b>Extruded height</b></td><td class="ms-p">the layer's or the drag's number, taken directly as extrude depth</td><td>The only quantity that becomes a 3D dimension</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>The one formula worth naming</h3>
+      <p>The area calculation is the shoelace formula, named as such in the source's own
+        comment:</p>
+      <div class="ms-formula">// Shoelace formula — signed area (positive = counter-clockwise in plan coords).
+sum = &Sigma; (x_i &times; y_i+1 &minus; x_i+1 &times; y_i)
+area = sum / 2</div>
+      <p class="ms-note">As trap&nbsp;2 says, this number is never shown to you. It exists only
+        to tell the push/pull tool which way an edge is facing, and to catch a drag that would
+        collapse a shape's footprint to nothing.</p>
+    </div>
+  </div>
+
+  <!-- 02 -->
+  <div class="ms-sec">
+    <div class="ms-sechead" id="ms-02"><span class="ms-secnum">02</span><h2>The model and its conventions</h2></div>
+    <div class="ms-secbody">
+      <h3>Units</h3>
+      <p>The project state carries a single <span class="ms-mono">units</span> field, set once
+        to <span class="ms-mono">'m'</span> when a new project is created. Nothing in the
+        interface reads or changes it afterwards — there is no unit switcher, and the field is
+        never referenced anywhere else in the source. Every number on screen is a metre, because
+        the code never considers it could be anything else.</p>
+
+      <h3>Coordinates, and which way is up</h3>
+      <p>A shape's points are plan coordinates, x and y, on the page you draw on. Extruding maps
+        plan x to world X, and the extrusion direction — the layer's height, or a push/pull drag
+        — to world Y, which is "up" in the 3D view. Plan y becomes world Z, negated. A point
+        drawn at plan (x, y) sits at 3D (x, 0, &minus;y) before extrusion, then rises to
+        (x, height, &minus;y) at its top, with the whole shape offset upward by its layer's
+        elevation.</p>
+
+      <h3>Layers as floors</h3>
+      <p>A layer carries an elevation — the height its floor sits at — and a default height,
+        the extrusion every new shape drawn on it receives. Adding a layer stacks its elevation
+        automatically on top of the tallest one that already exists, and nothing checks for an
+        overlap if elevation is set directly instead. In the current interface, though, this is
+        a property of the data model rather than something you can reach: no button, menu or
+        shortcut in the interface ever adds a second layer, and none edits an existing one's
+        elevation, height or colour. Every project therefore has exactly one layer — Ground
+        Floor, at elevation zero, three metres of default height — and the overlap question
+        does not arise in practice.</p>
+
+      <h3>Shape types</h3>
+      <p>A rectangle, a polygon and a reference line all store an ordered list of points. A
+        circle stores a centre and a radius instead. Every shape, whichever kind, also carries
+        an id, the layer it belongs to, whether it is closed, a height, and a colour — that is
+        the complete set of fields a shape can hold.</p>
+
+      <h3>Visibility and locking</h3>
+      <p>The two flags do different amounts of work, and neither does what you might assume.
+        <b>Visibility</b> gates three things at once: whether a shape is drawn in the 2D plan,
+        whether it can be clicked there, and whether it gets a mesh built for the 3D view at
+        all — which is also why a hidden shape never reaches an OBJ, STL or PNG export: there is
+        no mesh for those to draw from. <b>Locking</b> is narrower and reaches nowhere near as
+        far: it is checked in exactly one place in the whole source, the same 2D click test that
+        visibility gates — a locked shape still draws, still meshes in 3D, and still exports
+        everywhere. <b>DXF export is the one exception to all of this</b>: it reads the shape
+        list directly rather than the built meshes, and never checks visibility at all, so a
+        hidden shape's geometry still writes to a DXF file even though it never appears in an
+        OBJ, an STL, or a PNG.</p>
+
+      <h3>Undo and redo</h3>
+      <p>Every edit that calls a snapshot serialises the whole project state to a string and
+        pushes it onto an undo stack, capped at 100 entries; undoing pops it back and parses it.
+        A large imported asset — an image's pixel data, an imported model's raw <span class="ms-mono">.obj</span>
+        text — is deliberately kept out of that state, in a separate lookup the source comments
+        explains exists <em>because</em> the snapshot serialises everything on every edit, and an
+        embedded image or model would otherwise be duplicated into every single undo step. The
+        consequence: undo and redo never touch that lookup at all, they only swap the project
+        state back and forth, and removing an image or a model never deletes its data from the
+        lookup either — it simply stops being referenced. So undoing an import removes it from
+        view and redoing it finds the same data still waiting, consistently, in both directions.
+        Nothing is ever stranded or restored inconsistently; the only way that data is ever
+        cleared is starting a new project outright.</p>
+    </div>
+  </div>
+
+  <!-- 03 -->
+  <div class="ms-sec">
+    <div class="ms-sechead" id="ms-03"><span class="ms-secnum">03</span><h2>Import and export — what survives</h2></div>
+    <div class="ms-secbody">
+      <p>This is the section with no counterpart in a tool that has methods to document instead
+        of formats to move between. For each one: what a round trip keeps, and what it quietly
+        drops.</p>
+
+      <h3>DXF export</h3>
+      <p>Every closed shape writes as a single <span class="ms-mono">LWPOLYLINE</span> entity —
+        not exploded into individual lines — and every circle writes as a <span class="ms-mono">CIRCLE</span>.
+        That choice is deliberate: a polyline re-imports as one connected shape rather than a
+        scatter of disconnected segments, and it is what a real CAD package expects to read.</p>
+      <div class="ms-tbl"><table>
+        <thead><tr><th>Field</th><th>DXF group code</th><th>Written</th></tr></thead>
+        <tbody>
+          <tr><td>Entity type</td><td class="ms-p">0</td><td><span class="ms-chip is-in">Yes</span></td></tr>
+          <tr><td>Vertices (x, y)</td><td class="ms-p">10 / 20</td><td><span class="ms-chip is-in">Yes</span> — no Z coordinate at all</td></tr>
+          <tr><td>Closed flag</td><td class="ms-p">70</td><td><span class="ms-chip is-in">Yes</span></td></tr>
+          <tr><td>Vertex count</td><td class="ms-p">90</td><td><span class="ms-chip is-in">Yes</span> (polylines only)</td></tr>
+          <tr><td>Circle radius</td><td class="ms-p">40</td><td><span class="ms-chip is-in">Yes</span> (circles only)</td></tr>
+          <tr><td>Layer name</td><td class="ms-p">8</td><td><span class="ms-chip is-out">No</span> — every entity is written to the literal DXF layer <span class="ms-mono">"0"</span></td></tr>
+          <tr><td>Elevation / height</td><td class="ms-p">&mdash;</td><td><span class="ms-chip is-out">No</span></td></tr>
+          <tr><td>Colour</td><td class="ms-p">62</td><td><span class="ms-chip is-out">No</span></td></tr>
+          <tr><td>Units</td><td class="ms-p">HEADER</td><td><span class="ms-chip is-out">No</span> — the file has no HEADER section at all</td></tr>
+        </tbody>
+        <caption>Coordinates are written at full JavaScript floating-point precision — no rounding, no fixed number of decimal places.</caption>
+      </table></div>
+
+      <h3>DXF import</h3>
+      <p>Reads exactly four entity types: <span class="ms-mono">LINE</span>,
+        <span class="ms-mono">CIRCLE</span>, <span class="ms-mono">LWPOLYLINE</span>, and the
+        legacy <span class="ms-mono">POLYLINE</span>/<span class="ms-mono">VERTEX</span>/<span class="ms-mono">SEQEND</span>
+        triple. Anything else in the file — a block, a hatch, text, a dimension — is silently
+        skipped with no count kept anywhere. The only signal the interface gives you is a
+        warning if the file contained none of the four at all; a file with nine supported
+        entities and ninety unsupported ones reports success, with no way to tell from the
+        interface that anything was left out.</p>
+
+      <h3>OBJ and STL export</h3>
+      <p>Both export the same set: every shape that is closed and has a height above zero. An
+        open reference line, or a footprint with no height yet, is excluded from either. Neither
+        format ever touches an imported reference model — see below. STL is written binary, with
+        every vertex and normal stored as a 32-bit float; OBJ is written as plain text, full
+        double precision, no rounding.</p>
+
+      <h3>OBJ import</h3>
+      <p>An imported <span class="ms-mono">.obj</span> becomes a static reference, kept apart
+        from the drawn shapes in its own group from the moment it loads. It is never written into
+        the project's shape list, so it can be moved, scaled and deleted, but never edited as
+        geometry — and it never exports again. Draw over it, extrude your own footprint from it,
+        but the file you imported does not travel back out.</p>
+
+      <h3>Image import</h3>
+      <p>You are asked for one number: the image's real-world width, in metres. Height is never
+        asked for — it is always the width you gave, multiplied by the image's own pixel aspect
+        ratio, so the underlay can be resized without ever distorting.</p>
+
+      <h3>PNG export</h3>
+      <p>Captures the 3D view only, at whatever it currently shows — the 2D plan is a separate
+        canvas and is never captured. If a shape is selected, its outline is genuine 3D scene
+        geometry, so it appears in the image; if a reference model is selected, its handle does
+        too. A push/pull cursor is styling on the pointer, not scene content, so it never shows.</p>
+
+      <h3>Save and open</h3>
+      <p>A saved project is the entire state as JSON, with every imported image and model's raw
+        data folded in alongside it. Opening it reverses that exactly. This is the one format
+        that is fully round-trip safe, imported assets included.</p>
+
+      <h3>The round trip, plainly</h3>
+      <p>Draw, export DXF, re-import the DXF: you get the same editable shapes back, by design.
+        Draw, export OBJ or STL: nothing re-imports either back into editable geometry — an
+        imported <span class="ms-mono">.obj</span> only ever becomes a static reference, never a
+        drawn shape. Save, then open: everything comes back, including imported images and
+        models. Those are the only three round trips this tool has, and only one of them is
+        lossless in both directions.</p>
+    </div>
+  </div>
+
+  <!-- 04 -->
+  <div class="ms-sec">
+    <div class="ms-sechead" id="ms-04"><span class="ms-secnum">04</span><h2>What is and isn't modelled</h2></div>
+    <div class="ms-secbody">
+      <h3>Included</h3>
+      <dl class="ms-ledger">
+        <div><span class="ms-chip is-in">In</span><dt>Plan drawing</dt><dd>A rectangle, a circle, a polygon, and a reference line, each snapped to the grid or to an existing vertex at the moment it is drawn.</dd></div>
+        <div><span class="ms-chip is-in">In</span><dt>Straight extrusion</dt><dd>A footprint carried up by its layer's height, or by dragging its top face in the 3D view.</dd></div>
+        <div><span class="ms-chip is-in">In</span><dt>Independent wall push/pull</dt><dd>Dragging a single side wall — or a circle's radius — moves only that wall or that radius, leaving the rest of the footprint fixed. Carries safety clamps rather than a correctness guarantee — see "Where a wall push/pull can go wrong" in section 05.</dd></div>
+        <div><span class="ms-chip is-in">In</span><dt>Copy, cut and paste</dt><dd>For a shape selection, a reference image, or an imported 3D model, each restorable through undo.</dd></div>
+        <div><span class="ms-chip is-in">In</span><dt>DXF round trip</dt><dd>Export writes one polyline per shape, or a circle; import reads the same entities back as editable shapes.</dd></div>
+        <div><span class="ms-chip is-part">Partly</span><dt>Reference import</dt><dd>A .obj model or an image can be placed, moved and scaled, but neither is checked against anything. A .obj stays a static reference for the life of the project and never re-exports.</dd></div>
+        <div><span class="ms-chip is-part">Partly</span><dt>Undo and redo</dt><dd>Every edit to shapes, images and models is undoable, but imported pixel and model data sit outside the undo history for size reasons — see "Undo and redo" above — and are never themselves deleted by an undo.</dd></div>
+      </dl>
+
+      <h3>Not modelled</h3>
+      <p>This list is long, and that is the honest shape of a massing tool rather than a gap to
+        apologise for.</p>
+      <dl class="ms-ledger">
+        <div><span class="ms-chip is-out">Out</span><dt>Any quantity beyond geometry</dt><dd>No structural, thermal, daylight or cost quantity is computed anywhere. There is no solver of any kind — see trap 3.</dd></div>
+        <div><span class="ms-chip is-out">Out</span><dt>Area, floor area or volume</dt><dd>Nowhere in the interface. The only area the tool computes is internal to the push/pull tool's own arithmetic — see trap 2.</dd></div>
+        <div><span class="ms-chip is-out">Out</span><dt>Solid modelling beyond a straight extrusion</dt><dd>No booleans, no holes or openings, no curved or sloped surfaces, no roofs.</dd></div>
+        <div><span class="ms-chip is-out">Out</span><dt>Material or thickness</dt><dd>A shape has a colour and a height. Nothing else — no material, no thickness, no assembly of any kind.</dd></div>
+        <div><span class="ms-chip is-out">Out</span><dt>Any relationship between shapes</dt><dd>Nothing here knows that one footprint sits beside, inside, or on top of another, beyond the arithmetic the wall push/pull tool applies to a single shape's own edges.</dd></div>
+        <div><span class="ms-chip is-out">Out</span><dt>More than one floor, in practice</dt><dd>The data model supports layers stacked at different elevations, but nothing in the interface ever creates a second one — see "Layers as floors" above.</dd></div>
+        <div><span class="ms-chip is-part">Note</span><dt>Geometry</dt><dd>Exactly what was drawn — a rectangle, a circle, a polygon or a line, on one plane, extruded straight up. Nothing curves, tapers or steps.</dd></div>
+      </dl>
+    </div>
+  </div>
+
+  <!-- 05 -->
+  <div class="ms-sec">
+    <div class="ms-sechead" id="ms-05"><span class="ms-secnum">05</span><h2>How exact the numbers are</h2></div>
+    <div class="ms-secbody">
+      <p>The arithmetic itself is exact — there is no approximation, no solver converging on an
+        answer, nothing to be near. The honest question is one of resolution and
+        representation instead: what the grid costs you, what an export keeps, and what the
+        tool actually guarantees.</p>
+
+      <h3>What the grid costs</h3>
+      <p>With Snap on, the smallest difference a newly drawn point can express is one grid unit
+        — one metre, by default. That guarantee holds only at the instant a shape is created;
+        trap 1 covers why it does not survive a move or a scale. The grid size itself has no
+        fixed range in the source — any positive number can be typed into the toolbar's grid
+        field.</p>
+
+      <h3>Precision in the exports</h3>
+      <p>DXF and OBJ both write coordinates at full double-precision JavaScript numbers, with no
+        rounding applied anywhere in either exporter. STL is the one exception, and for a
+        physical reason rather than a design choice: the binary STL format itself stores every
+        vertex and normal as a 32-bit float, so re-importing an STL loses precision the DXF or
+        OBJ export of the same model would not.</p>
+
+      <h3>A non-snapped point is easy to produce</h3>
+      <p>Turn Snap off and draw normally, or leave Snap on and simply move or scale a shape
+        afterwards — trap 1 again. Either way, nothing marks the resulting coordinates as
+        off-grid; they look the same as a snapped point everywhere they are displayed.</p>
+
+      <h3>Where a wall push/pull can go wrong</h3>
+      <p>The side-wall and radius drags carry three safety limits, and none of them is a
+        correctness guarantee. The wall drag is rejected if it would shrink the shape's area
+        below five per cent of what it started at — this catches an obvious collapse, but
+        area alone cannot catch every way a polygon can fold in on itself; a drag that leaves
+        the area roughly unchanged while crossing one of the shape's own non-adjacent edges is
+        not guarded against. When the two edges neighbouring the one being dragged are
+        near-parallel to it, the two corners the drag should reconstruct by intersecting lines
+        cannot be found that way, and the code falls back to moving both corners in a straight
+        line instead — a reasonable approximation, not the same geometric operation as the
+        general case. The drag distance itself is separately clamped to five hundred units in
+        either direction, a safety limit against a rare instability in the ground-plane
+        arithmetic at a grazing camera angle, not a meaningful design constraint; a circle's
+        radius is clamped between 0.05 and 1000 units by the same drag.</p>
+
+      <h3>What is actually asserted</h3>
+      <p>The solid you see is the footprint you drew, extruded by the layer's height or by
+        however far you dragged it, and nothing more. There is no automated test suite anywhere
+        in this application's source — no test files, no test script, nothing. What the tool
+        computes has been read from the code for this page; it has not been checked against
+        itself by any suite of its own.</p>
+    </div>
+  </div>
+
+  <!-- 06 -->
+  <div class="ms-sec">
+    <div class="ms-sechead" id="ms-06"><span class="ms-secnum">06</span><h2>Inputs you control</h2></div>
+    <div class="ms-secbody">
+      <h4>Grid</h4>
+      <div class="ms-tbl"><table>
+        <thead><tr><th>Parameter</th><th class="ms-n">Default</th><th class="ms-n">Range</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Grid size</td><td class="ms-d">1 m</td><td class="ms-n">Any positive number</td><td>Toolbar field</td></tr>
+          <tr><td>Snap</td><td class="ms-d">On</td><td class="ms-n">On / off</td><td>Toolbar checkbox — see trap 1 for what it does not cover</td></tr>
+          <tr><td>Major grid line every</td><td class="ms-d">5</td><td class="ms-n">&mdash;</td><td>No control in the interface — fixed in the source</td></tr>
+        </tbody>
+      </table></div>
+
+      <h4>The layer</h4>
+      <div class="ms-tbl"><table>
+        <thead><tr><th>Field</th><th class="ms-n">Default</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Name</td><td class="ms-d">Ground Floor</td><td>No control in the interface</td></tr>
+          <tr><td>Elevation</td><td class="ms-d">0 m</td><td>No control in the interface</td></tr>
+          <tr><td>Default height</td><td class="ms-d">3 m</td><td>No control in the interface</td></tr>
+          <tr><td>Colour</td><td class="ms-d">#4fa3ff</td><td>No control in the interface</td></tr>
+          <tr><td>Visible / locked</td><td class="ms-d">true / false</td><td>Exist in the data model; no control in the interface</td></tr>
+        </tbody>
+        <caption>Nothing in the interface edits the layer itself. Every project runs with exactly this one, at exactly these values.</caption>
+      </table></div>
+
+      <h4>Per-shape properties</h4>
+      <p>Two things, and only two: <b>height</b>, which sets the extrusion, and <b>colour</b>,
+        picked from a swatch palette or a custom hex value. That is the complete set of fields
+        the Properties panel exposes for a shape.</p>
+
+      <h4>View and camera</h4>
+      <div class="ms-tbl"><table>
+        <thead><tr><th>Parameter</th><th class="ms-n">Default</th><th class="ms-n">Options</th></tr></thead>
+        <tbody>
+          <tr><td>View mode</td><td class="ms-d">Split</td><td class="ms-n">2D / Split / 3D</td></tr>
+          <tr><td>Camera preset</td><td class="ms-d">&mdash;</td><td class="ms-n">Top, Front, Isometric, Frame all</td></tr>
+        </tbody>
+      </table></div>
+
+      <h4>Controls that change nothing numerical</h4>
+      <p>View mode, camera presets, and a shape's colour are all presentation. None of them
+        touches a coordinate, a height, or an export. The only things that change a number are
+        drawing, moving, scaling, push/pull, and the grid and snap settings above.</p>
+    </div>
+  </div>
+
+  <!-- 07 -->
+  <div class="ms-sec">
+    <div class="ms-sechead" id="ms-07"><span class="ms-secnum">07</span><h2>Compared with SketchUp, BIM and a CAD package</h2></div>
+    <div class="ms-secbody">
+      <h3>Where it agrees</h3>
+      <ul>
+        <li><b>Push/pull.</b> Dragging a shape's top face to change its height, or a side wall to
+          move just that wall, is the same operation SketchUp's push/pull tool performs on a
+          pushed face. The mechanics match; nothing here checks the result against anything.</li>
+        <li><b>Plan-to-solid workflow.</b> Draw a footprint, give it a height, and you have a
+          massing volume — the same first move a SketchUp or Rhino study starts with.</li>
+        <li><b>DXF as a real interchange format.</b> The DXF this tool writes and reads uses
+          standard entity types a CAD package expects, closed as connected polylines rather than
+          loose lines.</li>
+      </ul>
+
+      <h3>Where it diverges</h3>
+      <ul>
+        <li><b>No object model beyond a footprint and a height.</b> A Revit wall carries a type,
+          a thickness, layers, and relationships to the walls, floors and rooms around it. A
+          Massing Studio "wall" is one side of an extruded rectangle — geometry, a colour, and
+          nothing else. There is no wall object here to compare.</li>
+        <li><b>No BIM metadata of any kind.</b> No IFC classes, no element properties, no
+          schedules, no quantities beyond what you would measure off the model yourself.</li>
+        <li><b>No analysis.</b> Nothing here computes a structural, thermal, daylight or cost
+          quantity — trap 3 again. A BIM tool with an analysis link, or a dedicated analysis
+          package, is what that question needs.</li>
+        <li><b>No parametric relationships.</b> Move one shape and nothing else in the model
+          reacts to it, because nothing here knows the shapes are related at all.</li>
+      </ul>
+
+      <p class="ms-note">The honest place for this tool: a fast way to test a footprint and a
+        few storeys against each other before opening something heavier. Move to SketchUp, Rhino
+        or a BIM package the moment you need materials, assemblies, or an answer that has to be
+        checked rather than sketched.</p>
+    </div>
+  </div>
+
+  <!-- 08 -->
+  <div class="ms-sec">
+    <div class="ms-sechead" id="ms-08"><span class="ms-secnum">08</span><h2>Three exercises</h2></div>
+    <div class="ms-secbody">
+      <p>Each isolates one variable and holds everything else fixed. Read the model, not the
+        picture.</p>
+
+      <div class="ms-ex">
+        <span class="ms-ex-n">Exercise 01</span>
+        <h3>Footprint depth governs how much of a room is daylit</h3>
+        <ol class="ms-steps">
+          <li>Draw a single rectangle 6 m wide. Set its height to one storey.</li>
+          <li>Extend its depth from 6 m to 18 m in three steps, redrawing or dragging a side
+            wall each time — the tool's own push/pull, applied to one wall only.</li>
+          <li>At each depth, mark by eye how far daylight from the 6 m face is likely to reach
+            into the plan — roughly twice the window head height is the usual rule of thumb,
+            applied here entirely outside the tool.</li>
+          <li>Note the depth beyond which the far end of the room falls outside that reach.</li>
+        </ol>
+        <p class="ms-principle"><b>Principle.</b> The tool has no daylight model of any kind —
+          trap 3 and the "Not modelled" ledger both say so. What it gives you is an exact
+          footprint to measure a rule of thumb against by hand, which is a different and more
+          honest use of the tool than expecting it to answer the question itself.</p>
+      </div>
+
+      <div class="ms-ex">
+        <span class="ms-ex-n">Exercise 02</span>
+        <h3>The same floor area takes very different forms once storeys change</h3>
+        <ol class="ms-steps">
+          <li>Draw a footprint and extrude it to one storey. Read its plan dimensions and, using
+            the shoelace formula this page names in section 01, compute its area by hand — the
+            tool will not do this for you (trap 2).</li>
+          <li>Redraw a second footprint at a quarter of the plan area, and extrude it to four
+            storeys instead.</li>
+          <li>Compare the two massing volumes in the 3D view. Note that their total floor area
+            is the same by construction, and their footprint and massing are not.</li>
+          <li>Try a third: half the footprint area, two storeys, and see where it sits between
+            the other two.</li>
+        </ol>
+        <p class="ms-principle"><b>Principle.</b> Because the tool never computes or displays an
+          area, comparing options by floor area is entirely the student's own arithmetic —
+          exactly the point of trap 2. The tool's job is to make the volumes visible once you
+          have decided what to compare.</p>
+      </div>
+
+      <div class="ms-ex">
+        <span class="ms-ex-n">Exercise 03</span>
+        <h3>A massing exported as .obj becomes another tool's input</h3>
+        <ol class="ms-steps">
+          <li>Build a simple massing study — a footprint or two, extruded to a few storeys.</li>
+          <li>Export it as <span class="ms-mono">.obj</span> (section 03 above covers exactly
+            what does and does not travel with it — no colour, no layer, geometry only).</li>
+          <li>Import that <span class="ms-mono">.obj</span> into Solar Analysis Lab or 3D Wind
+            Rose, both of which read the same format.</li>
+          <li>Note what each tool then does with the geometry that Massing Studio itself has no
+            way to compute.</li>
+        </ol>
+        <p class="ms-principle"><b>Principle.</b> This is the strongest argument for where
+          Massing Studio sits in the set: it is not the tool that answers a solar or wind
+          question, it is the tool that produces the geometry those questions are asked of. The
+          .obj export exists for exactly this handoff.</p>
+      </div>
+
+      <p class="ms-note">A caution for all three: read the model, not a number the tool never
+        gives you. Where a figure matters, compute it yourself and say how.</p>
+    </div>
+  </div>
+
+  <div class="ms-footer">
+    <p>Everything on this page was read from the tool's source code. Where a claim could be
+      checked against the code directly, it was; where the code did not make something clear,
+      this page says so rather than inferring.</p>
+    <p>For anything beyond an early massing study, use the appropriate analysis tool. This tool
+      is built to teach the relationship between a plan and a volume, and it contains no
+      analysis of any kind — deliberately, so that what it does do stays legible.</p>
+
+    <h3>Licence</h3>
+    <p>© Karam Al-Obaidi. The app is licensed <b>MIT</b>; this documentation is
+      <b><a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a></b>.
+      Both permit any use, including commercial, and ask only that you credit the author. The
+      tool bundles <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a>
+      r160 (also MIT), together with its OrbitControls, OBJExporter, OBJLoader and STLExporter
+      addons from the same release — the full notice travels inside the application file's own
+      header. No module in the application's own source makes a network request of any kind;
+      three.js itself bundles generic loader code capable of one, for features this application
+      never calls.</p>
+    <p>A building you make with the tool is <b>yours</b>. Neither licence claims anything over
+      your model, your drawings or the images you export.</p>
+
+    <h3>How to cite</h3>
+    <p>Cite it as software. Keeping the copyright notice in the file satisfies the licence; a
+      citation is the scholarly act on top of that.</p>
+    <p class="ms-ref">Al-Obaidi, K. M. (2026). <i>Massing Studio: a browser-based plan drawing
+      and extrusion tool</i> (Version 1.0.0) [Computer software].
+      <a href="https://karam.me.uk/applications/massing-studio/" target="_blank" rel="noopener">https://karam.me.uk/applications/massing-studio/</a></p>
+<pre>@software{alobaidi2026massingstudio,
+  author  = {Al-Obaidi, Karam M.},
+  title   = {Massing Studio: a browser-based plan drawing
+             and extrusion tool},
+  year    = {2026},
+  version = {1.0.0},
+  url     = {https://karam.me.uk/applications/massing-studio/},
+  note    = {MIT licensed}
+}</pre>
+    <p>Report the <b>grid size</b> and <b>whether Snap was on</b> alongside any quoted figure,
+      and say whether the shape in question was moved or scaled after it was drawn — per trap 1,
+      that changes whether the coordinates are still multiples of the grid at all.</p>
+
+    <h3>References</h3>
+    <p>What the code itself names, and nothing else. The source's own vendored licence file
+      names three.js and its four addons; nothing else in the application cites an external
+      work. The DXF entity types (<span class="ms-mono">LINE</span>, <span class="ms-mono">CIRCLE</span>,
+      <span class="ms-mono">LWPOLYLINE</span>, <span class="ms-mono">POLYLINE</span>,
+      <span class="ms-mono">VERTEX</span>, <span class="ms-mono">SEQEND</span>) are the
+      format's own vocabulary, and the shoelace formula in section 01 is named in a comment
+      but attributed to no one — so neither has an entry below.</p>
+    <ul class="ms-refs">
+      <li>Three.js authors. (2023). <i>three.js</i> (r160) [Computer software]. MIT licensed.
+        <a href="https://github.com/mrdoob/three.js/releases/tag/r160" target="_blank" rel="noopener">https://github.com/mrdoob/three.js/releases/tag/r160</a>
+        &mdash; the 3D engine the application is built on, with its OrbitControls,
+        OBJExporter, OBJLoader and STLExporter addons from the same release, all named in the
+        source's own vendored licence file.</li>
+    </ul>
+    <p class="ms-note"><b>Further reading</b> &mdash; not named by the code, and nothing on this
+      page rests on any of these. They are useful background for a student working with this
+      tool, not a source for anything it computes.</p>
+    <ul class="ms-refs">
+      <li>Ching, F. D. K., &amp; Shapiro, I. M. (2021). <i>Green building illustrated</i> (2nd
+        ed.). Wiley. &mdash; an accessible starting point for the daylight and massing
+        principles the exercises in section 08 ask a student to reason about by hand.</li>
+      <li>Lawson, B. (2005). <i>How designers think: The design process demystified</i> (4th
+        ed.). Architectural Press. &mdash; on early massing and iterative form-finding as a
+        design activity, the territory this tool is built for.</li>
+      <li>Autodesk, Inc. (2022). <i>AutoCAD 2023 developer and ObjectARX help</i> [Online
+        documentation]. Retrieved 15 September 2026, from
+        <a href="https://help.autodesk.com/view/OARX/2023/ENU/" target="_blank" rel="noopener">https://help.autodesk.com/view/OARX/2023/ENU/</a>
+        &mdash; the documentation set containing the DXF Reference section (entity types,
+        group codes) behind the format the application reads and writes (section 03).</li>
+    </ul>
+    <p class="ms-cite">For anything beyond geometry, none of the above substitutes for the
+      appropriate specialist tool or an expert in the relevant field.</p>
+  </div>
+
+</div>
