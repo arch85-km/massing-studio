@@ -1,5 +1,7 @@
 # Massing Studio
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22814301.svg)](https://doi.org/10.5281/zenodo.22814301)
+
 **v1.0.0 · 2026-09-17**
 
 A lightweight, browser-based tool for **sketching 2D plans and extruding

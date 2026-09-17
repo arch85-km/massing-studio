@@ -4,6 +4,14 @@ type: software
 title: "Massing Studio: A browser-based plan drawing and extrusion tool"
 version: 1.0.0
 date-released: 2026-09-17
+doi: 10.5281/zenodo.22814301
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.22814301
+    description: "Concept DOI — always resolves to the latest version"
+  - type: doi
+    value: 10.5281/zenodo.22814302
+    description: "Version DOI — this release, 1.0.0"
 abstract: >-
   A lightweight, browser-based tool for sketching 2D plans and extruding
   them into 3D massing models, built for architecture students who need to
