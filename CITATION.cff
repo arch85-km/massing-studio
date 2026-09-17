@@ -3,7 +3,7 @@ message: "If this tool informs a paper, a thesis, a lecture or a studio brief, p
 type: software
 title: "Massing Studio: A browser-based plan drawing and extrusion tool"
 version: 1.0.0
-date-released: 2026-09-15
+date-released: 2026-09-17
 abstract: >-
   A lightweight, browser-based tool for sketching 2D plans and extruding
   them into 3D massing models, built for architecture students who need to

@@ -1,6 +1,6 @@
 # Massing Studio
 
-**v1.0.0 · 2026-09-15**
+**v1.0.0 · 2026-09-17**
 
 A lightweight, browser-based tool for **sketching 2D plans and extruding
 them into 3D massing models** — built for architecture students who need
