@@ -1,0 +1,61 @@
+Massing Studio — a browser-based plan drawing and extrusion tool
+Copyright (c) 2026 Karam Al-Obaidi
+
+This project is released under two licences, because software and writing
+want different terms. Both permit commercial use. Both require credit.
+
+    SOFTWARE                                                 MIT
+      index.html  css/  js/  scripts/  and the built dist/Massing-Studio.html
+
+    DOCUMENTATION AND TEACHING MATERIAL                       CC BY 4.0
+      README.md  docs/  screenshots and other figures
+
+In plain terms: use it, change it, put it on your own site, build it into
+something else, teach with it, sell what you build — just keep the credit.
+
+The full MIT text for the software is in LICENSE, beside this file.
+
+================================================================================
+DOCUMENTATION — Creative Commons Attribution 4.0 International
+================================================================================
+
+Copyright (c) 2026 Karam Al-Obaidi
+
+Licensed CC BY 4.0.   https://creativecommons.org/licenses/by/4.0/
+
+  YOU MAY
+    - share it: copy and redistribute in any medium or format
+    - adapt it: remix, transform and build upon it
+    - do so for any purpose, including commercially
+
+  PROVIDED THAT
+    - You give appropriate credit to Karam Al-Obaidi, link to the licence,
+      and indicate if changes were made. You may do so in any reasonable
+      manner, but not in any way that suggests the author endorses you or
+      your use.
+
+Attribution is not the same as academic citation. If this tool informs a
+paper, a thesis, a lecture or a studio brief, please also cite it as
+software — see "How to cite" in docs/method-notes.html.
+
+================================================================================
+NO WARRANTY, AND A LIMIT ON WHAT THIS TOOL IS FOR
+================================================================================
+
+Provided as-is, without warranty of any kind. Massing Studio draws and
+extrudes geometry; it performs no structural, thermal, daylight, cost or
+capacity analysis. See docs/method-notes.html for exactly what is and isn't
+modelled, and for the tool's declared limitations.
+
+================================================================================
+THIRD-PARTY COMPONENTS
+================================================================================
+
+The terms above cover this project's own work. They do not cover the
+following, which carry their own licence and remains under it:
+
+  three.js (r160), with its OrbitControls, OBJExporter, OBJLoader and
+  STLExporter addons — vendor/three/
+    Copyright (c) 2010-2023 three.js authors
+    MIT License. Full text: vendor/three/LICENSE.
+    https://threejs.org

@@ -147,6 +147,11 @@ massing-studio/
 
 Massing Studio's own source code is licensed under the **MIT License**
 (see `LICENSE`). Accompanying documentation, screenshots, and exercises are
-licensed separately under **CC BY 4.0** (see `LICENSE-DOCS`). The vendored
-Three.js library under `vendor/three/` keeps its own upstream MIT license
-(see `vendor/three/LICENSE`).
+licensed separately under **CC BY 4.0**. Both licences, the split between
+them, and the vendored Three.js third-party notice are set out in full in
+`NOTICE`.
+
+## How to cite
+
+See "How to cite" in `docs/method-notes.html` for the full citation
+(Harvard and BibTeX) and reproducibility notes.

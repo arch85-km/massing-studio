@@ -1,0 +1,26 @@
+{
+  "upload_type": "software",
+  "title": "Massing Studio: A browser-based plan drawing and extrusion tool",
+  "version": "1.0.0",
+  "language": "eng",
+  "license": "MIT",
+  "creators": [
+    {
+      "name": "Al-Obaidi, Karam M.",
+      "affiliation": "Sheffield Hallam University",
+      "orcid": "0000-0002-4379-6964"
+    }
+  ],
+  "description": "<p>Massing Studio is a lightweight, browser-based tool for architecture students to sketch 2D plans and extrude them into 3D massing models, built to go from a plan diagram to an exportable 3D volume in minutes without the learning curve of a full CAD/BIM suite.</p><p>Shapes are drawn on a snap-grid 2D plan, then extruded by setting a height or dragging a Push/Pull tool directly in the 3D view &mdash; independently on a rectangle's four walls, an arbitrary polygon's edge, or a circle's radius. Models import and export as .obj, .stl and .dxf for use in Rhino, Blender, SketchUp, a slicer, or another CAD package. The method notes in docs/method-notes.html document every convention the tool relies on, name every source the code implements, and declare the tool's limitations.</p>",
+  "notes": "Dual-licensed. The software (index.html, css/, js/, scripts/ and the built dist/Massing-Studio.html) is released under the MIT Licence. The documentation and teaching material (README.md, docs/, screenshots and figures) is released under CC BY 4.0.",
+  "keywords": [
+    "architecture",
+    "cad",
+    "massing",
+    "plan-drawing",
+    "extrusion",
+    "threejs",
+    "education",
+    "dxf"
+  ]
+}
