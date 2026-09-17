@@ -18,13 +18,13 @@ cat > "$OUT" <<'HTMLHEAD'
   <!--
 HTMLHEAD
 
-cat vendor/three/LICENSE >> "$OUT"
+cat vendor/three/three.LICENSE >> "$OUT"
 
 cat >> "$OUT" <<'LICENSENOTE'
 
 Massing Studio's own source code is MIT licensed (see LICENSE in the
 project repository). Accompanying documentation, screenshots, and
-exercises are licensed separately under CC BY 4.0 (see LICENSE-DOCS),
+exercises are licensed separately under CC BY 4.0 (see NOTICE),
 https://creativecommons.org/licenses/by/4.0/
 LICENSENOTE
 

@@ -57,5 +57,5 @@ following, which carry their own licence and remains under it:
   three.js (r160), with its OrbitControls, OBJExporter, OBJLoader and
   STLExporter addons — vendor/three/
     Copyright (c) 2010-2023 three.js authors
-    MIT License. Full text: vendor/three/LICENSE.
+    MIT License. Full text: vendor/three/three.LICENSE.
     https://threejs.org
