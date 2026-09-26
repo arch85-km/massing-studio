@@ -6,6 +6,18 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 OUT="dist/Massing-Studio.html"
+
+# Print a JS module without its `import ... ;` statements (single- or
+# multi-line) and with a leading `export ` stripped from each declaration.
+# Matching by pattern, not by line number, so editing a module's imports
+# can't silently break the bundle.
+strip_module() {
+  awk '
+    skipping { if ($0 ~ /;[[:space:]]*$/) skipping = 0; next }
+    /^import[[:space:]]/ { if ($0 !~ /;[[:space:]]*$/) skipping = 1; next }
+    { sub(/^export /, ""); print }
+  ' "$1"
+}
 mkdir -p "$(dirname "$OUT")"
 rm -f "$OUT"
 
@@ -19,6 +31,9 @@ cat > "$OUT" <<'HTMLHEAD'
 HTMLHEAD
 
 cat vendor/three/three.LICENSE >> "$OUT"
+echo '' >> "$OUT"
+echo 'polygon-clipping (vendor/polygon-clipping/), bundled below:' >> "$OUT"
+cat vendor/polygon-clipping/polygon-clipping.LICENSE >> "$OUT"
 
 cat >> "$OUT" <<'LICENSENOTE'
 
@@ -48,8 +63,13 @@ cat >> "$OUT" <<'AFTERSTYLE'
 <body>
 AFTERSTYLE
 
-# ---- body markup (between <body> and the old importmap) ----
-sed -n '14,155p' index.html >> "$OUT"
+# ---- body markup: everything after <body> up to (not including) the
+#      vendored-script / importmap block at the end of index.html ----
+awk '
+  /<body>/ { inside = 1; next }
+  /<!-- polygon-clipping ships as a UMD bundle/ || /<script / { if (inside) exit }
+  inside { print }
+' index.html >> "$OUT"
 
 # ---- app namespace ----
 cat >> "$OUT" <<'NAMESPACE'
@@ -64,6 +84,11 @@ echo '  <script>' >> "$OUT"
 echo '  (function(){' >> "$OUT"
 sed -e '$ s/^export /window.THREE = /' vendor/three/three.module.js >> "$OUT"
 echo '  })();' >> "$OUT"
+echo '  </script>' >> "$OUT"
+
+# ---- polygon-clipping (UMD — defines window.polygonClipping by itself) ----
+echo '  <script>' >> "$OUT"
+cat vendor/polygon-clipping/polygon-clipping.umd.js >> "$OUT"
 echo '  </script>' >> "$OUT"
 
 # ---- OrbitControls.js ----
@@ -109,43 +134,64 @@ echo '  </script>' >> "$OUT"
 # ---- state.js ----
 echo '  <script>' >> "$OUT"
 echo '  (function(App){' >> "$OUT"
-sed -e 's/^export //' js/state.js >> "$OUT"
-echo '  App.nextId = nextId; App.Store = Store;' >> "$OUT"
+strip_module js/state.js >> "$OUT"
+echo '  App.nextId = nextId; App.Store = Store; App.levelGradient = levelGradient;' >> "$OUT"
 echo '  })(window.App);' >> "$OUT"
 echo '  </script>' >> "$OUT"
 
 # ---- geometry.js ----
 echo '  <script>' >> "$OUT"
 echo '  (function(App){' >> "$OUT"
-sed -e 's/^export //' js/geometry.js >> "$OUT"
-echo '  App.snap = snap; App.snapPoint = snapPoint; App.dist = dist; App.findNearestVertex = findNearestVertex; App.shapePoints = shapePoints; App.pointInPolygon = pointInPolygon; App.distToSegment = distToSegment; App.hitTestShape = hitTestShape; App.centroid = centroid; App.boundsOf = boundsOf; App.lineIntersect = lineIntersect; App.polygonArea = polygonArea;' >> "$OUT"
+strip_module js/geometry.js >> "$OUT"
+# every exported function of geometry.js, published on App
+echo "  Object.assign(App, { $(grep -oE '^export function [A-Za-z0-9_]+' js/geometry.js | awk '{print $3}' | paste -sd, -) });" >> "$OUT"
 echo '  })(window.App);' >> "$OUT"
 echo '  </script>' >> "$OUT"
 
-# ---- canvas2d.js (drop its two import statements, lines 4-8) ----
+# ---- booleans.js ----
 echo '  <script>' >> "$OUT"
 echo '  (function(App){' >> "$OUT"
-echo "  const { nextId, snapPoint, dist, findNearestVertex, shapePoints, hitTestShape, centroid, boundsOf } = App;" >> "$OUT"
-sed -e '4,8d' -e 's/^export //' js/canvas2d.js >> "$OUT"
+echo "  const { shapePoints, polygonArea, shapeBaseZ } = App;" >> "$OUT"
+strip_module js/booleans.js >> "$OUT"
+echo '  App.booleanShapes = booleanShapes;' >> "$OUT"
+echo '  })(window.App);' >> "$OUT"
+echo '  </script>' >> "$OUT"
+
+# The modules below get their imports back as destructuring from App —
+# the names are read from each module's own import statements.
+imported_names() {
+  awk '
+    /^import[[:space:]]/ { grab = 1 }
+    grab { buf = buf " " $0; if ($0 ~ /;[[:space:]]*$/) grab = 0 }
+    END { print buf }
+  ' "$1" | grep -oE "import[[:space:]]*\{[^}]*\}[[:space:]]*from[[:space:]]*'\./[^']+'" \
+         | sed -E "s/import[[:space:]]*\{([^}]*)\}.*/\1/" | tr ',' '\n' | tr -d ' ' | grep -v '^$' | paste -sd, - | sed 's/,/, /g'
+}
+
+# ---- canvas2d.js ----
+echo '  <script>' >> "$OUT"
+echo '  (function(App){' >> "$OUT"
+echo "  const { $(imported_names js/canvas2d.js) } = App;" >> "$OUT"
+strip_module js/canvas2d.js >> "$OUT"
 echo '  App.Plan2D = Plan2D;' >> "$OUT"
 echo '  })(window.App);' >> "$OUT"
 echo '  </script>' >> "$OUT"
 
-# ---- scene3d.js (drop its six import statements, lines 4-9) ----
+# ---- scene3d.js ----
 echo '  <script>' >> "$OUT"
 echo '  (function(App, THREE){' >> "$OUT"
-echo "  const { shapePoints, distToSegment, polygonArea, lineIntersect } = App;" >> "$OUT"
+echo "  const { $(imported_names js/scene3d.js) } = App;" >> "$OUT"
 echo "  const { OrbitControls, OBJExporter, OBJLoader, STLExporter } = THREE;" >> "$OUT"
-sed -e '4,9d' -e 's/^export //' js/scene3d.js >> "$OUT"
+strip_module js/scene3d.js >> "$OUT"
 echo '  App.Scene3D = Scene3D;' >> "$OUT"
 echo '  })(window.App, window.THREE);' >> "$OUT"
 echo '  </script>' >> "$OUT"
 
-# ---- main.js (drop its three import statements, lines 4-6) ----
+# ---- main.js ----
 echo '  <script>' >> "$OUT"
 echo '  (function(App){' >> "$OUT"
-echo "  const { Store, nextId, Plan2D, Scene3D } = App;" >> "$OUT"
-sed -e '4,6d' js/main.js >> "$OUT"
+echo "  const { $(imported_names js/main.js) } = App;" >> "$OUT"
+strip_module js/main.js >> "$OUT"
 echo '  })(window.App);' >> "$OUT"
 echo '  </script>' >> "$OUT"
 
