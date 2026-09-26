@@ -207,33 +207,33 @@
     </p>
     <div class="ms-byline">
       <span><b>Audience</b> Architecture students and staff</span>
-      <span><b>Method</b> Plan drawing &middot; straight extrusion &middot; no analysis</span>
+      <span><b>Method</b> Plan drawing &middot; straight extrusion &middot; measurement &middot; no analysis</span>
       <span><b>Runs</b> Entirely in the browser</span>
-      <span><b>Version</b> 1.0.0 &middot; 17 September 2026</span>
+      <span><b>Version</b> 1.1.0 &middot; 26 September 2026</span>
     </div>
   </div>
 
   <div class="ms-traps">
     <h2>Three things to know before you cite a number</h2>
     <ol>
-      <li><b>Snapping only ever happens once, when a shape is first drawn.</b> The Select
-        tool's move and scale handles read the pointer position directly and never call the
-        snapping function at all, whatever the Snap checkbox says. Draw a rectangle with Snap
-        on and its corners land on exact multiples of the grid (1&nbsp;m by default) — but drag
-        that same rectangle, or resize it by a corner handle, and it can end up anywhere: off
-        the grid, at an arbitrary fraction of a metre, with nothing on screen to say so and no
-        way to snap it back afterwards. Snapping to an existing shape's own vertex is stronger
-        still: it is checked before the grid, and fires whether or not Snap is on. A coordinate
-        read off this tool is the grid's answer only for a shape that has never been moved.</li>
-      <li><b>There is no area anywhere in the interface.</b> The tool computes a signed polygon
-        area internally — the shoelace formula, positive for one winding direction — but only to
-        work out which way an edge faces and to stop a push/pull drag from folding a shape in on
-        itself. It is never shown on screen, never in a properties panel, never in an export. If
-        you want the area of a footprint you have drawn, you compute it yourself from its
-        coordinates; nothing this tool writes down should be mistaken for one.</li>
-      <li><b>Nothing here is analysis.</b> The tool draws a plan, extrudes it by a height, and
-        exports the result. No module computes a structural, thermal, daylight or cost quantity
-        of any kind, and there is no solver — iterative or otherwise — anywhere in the source.</li>
+      <li><b>"GFA" here is a sum of footprints, not of floors.</b> The status bar's GFA figure,
+        and each level's area in the Levels panel, add up the plan area of every extruded shape
+        once — whatever its height. A single volume drawn 9&nbsp;m tall counts as one footprint,
+        not three storeys; two shapes that overlap on the same level are both counted in full,
+        overlap included. The figure is a true gross floor area only when every storey is drawn
+        as its own shape, on its own level, with no overlaps — and nothing in the tool checks
+        that it is.</li>
+      <li><b>Snapping is stronger than the Snap checkbox, and weaker than the grid.</b> Snapping
+        to an existing shape's corner is checked first and fires whether or not Snap is on — when
+        drawing, moving, scaling, editing a point, and placing a dimension. Turn Snap off and
+        everything else goes free-hand, with nothing on screen marking a coordinate as off-grid.
+        And even with Snap on, the 3D push/pull tool rounds a height to 0.1&nbsp;m, not to the
+        grid, unless it lands within 12 screen pixels of another volume's top or bottom or a
+        level's elevation.</li>
+      <li><b>Nothing here is analysis.</b> The tool draws a plan, extrudes it by a height,
+        measures lengths and areas, and exports the result. No module computes a structural,
+        thermal, daylight or cost quantity of any kind, and there is no solver — iterative or
+        otherwise — anywhere in the source.</li>
     </ol>
   </div>
 
@@ -241,21 +241,25 @@
   <div class="ms-sec">
     <div class="ms-sechead" id="ms-01"><span class="ms-secnum">01</span><h2>What it computes</h2></div>
     <div class="ms-secbody">
-      <p>Eight things, and none of them is more than a few lines of arithmetic. There is no
-        solver anywhere in this application — no stiffness matrix, no finite elements, no
-        iteration of any kind.</p>
+      <p>Everything below is geometry, and all but one item are a few lines of arithmetic. The
+        exception, the boolean operations, calls a vendored polygon-clipping library. There is
+        still no solver anywhere in this application — no stiffness matrix, no finite elements,
+        no iteration toward an answer.</p>
 
       <div class="ms-tbl"><table>
         <thead><tr><th>Quantity</th><th>From</th><th>Used for</th></tr></thead>
         <tbody>
-          <tr><td><b>Snapped coordinate</b></td><td class="ms-p">round(value &divide; grid) &times; grid, each axis</td><td>Placing a point when a shape is first drawn — only then, see trap&nbsp;1</td></tr>
-          <tr><td><b>Distance</b></td><td class="ms-p">&radic;(&Delta;x&sup2; + &Delta;y&sup2;)</td><td>Vertex snapping, handle hit-testing, drag scale factors</td></tr>
-          <tr><td><b>Polygon area (signed)</b></td><td class="ms-p">shoelace sum &divide; 2</td><td>Internal only — edge winding direction and a collapse guard inside wall push/pull, see trap&nbsp;2</td></tr>
-          <tr><td><b>Centroid</b></td><td class="ms-p">arithmetic mean of the vertices</td><td>The centre a shape scales from when you drag a corner handle</td></tr>
-          <tr><td><b>Bounds</b></td><td class="ms-p">min/max x, min/max y</td><td>Placing a shape's corner-scale handles</td></tr>
-          <tr><td><b>Segment distance</b></td><td class="ms-p">clamped projection onto a segment</td><td>Click hit-testing against a shape's outline</td></tr>
-          <tr><td><b>Line intersection</b></td><td class="ms-p">two infinite lines; null if nearly parallel</td><td>Rebuilding a polygon's two neighbouring corners after a wall push/pull edge offset</td></tr>
-          <tr><td><b>Extruded height</b></td><td class="ms-p">the layer's or the drag's number, taken directly as extrude depth</td><td>The only quantity that becomes a 3D dimension</td></tr>
+          <tr><td><b>Snapped coordinate</b></td><td class="ms-p">nearest existing corner within 10 screen px; else round(value &divide; grid) &times; grid</td><td>Drawing, moving, scaling, point editing, dimensions — see trap&nbsp;2</td></tr>
+          <tr><td><b>Distance</b></td><td class="ms-p">&radic;(&Delta;x&sup2; + &Delta;y&sup2;), or with &Delta;z&sup2; in 3D</td><td>Dimensions, snapping, hit-testing</td></tr>
+          <tr><td><b>Footprint area</b></td><td class="ms-p">|shoelace sum &divide; 2| of the outline, minus each hole's; &pi;r&sup2; for a circle</td><td>Properties, the Levels panel, the status bar's GFA, measured areas</td></tr>
+          <tr><td><b>Perimeter</b></td><td class="ms-p">sum of edge lengths, holes included; 2&pi;r for a circle</td><td>Properties, measured areas</td></tr>
+          <tr><td><b>Volume</b></td><td class="ms-p">footprint area &times; height</td><td>Properties</td></tr>
+          <tr><td><b>Curve outline</b></td><td class="ms-p">centripetal Catmull-Rom through the clicked points, 12 samples per span</td><td>Every use of a curve: drawing, area, extrusion, export</td></tr>
+          <tr><td><b>Bounds</b></td><td class="ms-p">min/max x, min/max y</td><td>Scale handles (a shape scales from the opposite corner), width &times; depth</td></tr>
+          <tr><td><b>Segment distance</b></td><td class="ms-p">clamped projection onto a segment</td><td>Click hit-testing against an outline or a dimension</td></tr>
+          <tr><td><b>Line intersection</b></td><td class="ms-p">two infinite lines; null if nearly parallel</td><td>Rebuilding a polygon's two neighbouring corners after a wall push/pull</td></tr>
+          <tr><td><b>Boolean footprint</b></td><td class="ms-p">polygon-clipping (intersection, union, difference) of the two outlines</td><td>Intersect, Union and Subtract — see section 05</td></tr>
+          <tr><td><b>Vertical extent</b></td><td class="ms-p">level elevation + base offset, up by the height</td><td>Stacking, booleans (intervals overlapped), snapping heights</td></tr>
         </tbody>
       </table></div>
 
@@ -265,9 +269,11 @@
       <div class="ms-formula">// Shoelace formula — signed area (positive = counter-clockwise in plan coords).
 sum = &Sigma; (x_i &times; y_i+1 &minus; x_i+1 &times; y_i)
 area = sum / 2</div>
-      <p class="ms-note">As trap&nbsp;2 says, this number is never shown to you. It exists only
-        to tell the push/pull tool which way an edge is facing, and to catch a drag that would
-        collapse a shape's footprint to nothing.</p>
+      <p class="ms-note">Since version 1.1.0 this number is shown to you — as a positive value,
+        with any holes subtracted — in the Properties panel, the Levels panel and the status bar.
+        It still also tells the push/pull tool which way an edge faces, and catches a drag that
+        would collapse a footprint to nothing. Trap&nbsp;1 is about what those displayed sums
+        do and do not add up to.</p>
     </div>
   </div>
 
@@ -284,55 +290,70 @@ area = sum / 2</div>
 
       <h3>Coordinates, and which way is up</h3>
       <p>A shape's points are plan coordinates, x and y, on the page you draw on. Extruding maps
-        plan x to world X, and the extrusion direction — the layer's height, or a push/pull drag
-        — to world Y, which is "up" in the 3D view. Plan y becomes world Z, negated. A point
-        drawn at plan (x, y) sits at 3D (x, 0, &minus;y) before extrusion, then rises to
-        (x, height, &minus;y) at its top, with the whole shape offset upward by its layer's
-        elevation.</p>
+        plan x to world X, and the extrusion direction to world Y, which is "up" in the 3D view.
+        Plan y becomes world Z, negated. A point drawn at plan (x, y) sits at 3D
+        (x, <i>b</i>, &minus;y), where <i>b</i> is its level's elevation plus the shape's own
+        base offset, and rises to (x, <i>b</i> + height, &minus;y) at its top. Every export and
+        every <span class="ms-mono">.obj</span> this tool opens uses the same convention: Y up,
+        metres.</p>
 
-      <h3>Layers as floors</h3>
-      <p>A layer carries an elevation — the height its floor sits at — and a default height,
-        the extrusion every new shape drawn on it receives. Adding a layer stacks its elevation
-        automatically on top of the tallest one that already exists, and nothing checks for an
-        overlap if elevation is set directly instead. In the current interface, though, this is
-        a property of the data model rather than something you can reach: no button, menu or
-        shortcut in the interface ever adds a second layer, and none edits an existing one's
-        elevation, height or colour. Every project therefore has exactly one layer — Ground
-        Floor, at elevation zero, three metres of default height — and the overlap question
-        does not arise in practice.</p>
+      <h3>Levels as floors</h3>
+      <p>A level carries a name, an elevation — the height its floor sits at — a default height
+        that every new shape drawn on it receives, a colour, and visible and locked flags. All of
+        them are edited in the Levels panel. <b>+ Add level</b> places a new level at the top of
+        the tallest existing one (its elevation plus its default height), named Floor&nbsp;1,
+        Floor&nbsp;2 and so on, counting the Ground Floor as zero. <b>Restack</b> re-sets every
+        elevation so each level sits exactly on the one below; <b>Colour as gradient</b> recolours
+        every level, and every shape on it, from warm orange at the lowest to pale straw at the
+        highest. Nothing checks that levels don't overlap, or that a volume stays within its
+        level's height: a 9&nbsp;m volume on a 3&nbsp;m level simply passes through the two
+        levels above it.</p>
+      <p>A shape also carries a <b>base offset</b>, in metres above its level's elevation, which
+        is how one volume sits on top of another within a level. The Properties panel accepts any
+        number for it, negative included; dragging a volume vertically in 3D (Alt+drag) stops at
+        ground level. "Stack copy on top" duplicates a footprint with its underside at the
+        original's top — onto the level whose elevation matches that height to the millimetre, if one exists,
+        otherwise on the same level with a larger base offset.</p>
+      <p>The plan view shows the active level's shapes normally and every other level's at
+        35&nbsp;% opacity. A click prefers a shape on the active level; selecting a shape on
+        another level makes that level active.</p>
 
       <h3>Shape types</h3>
-      <p>A rectangle, a polygon and a reference line all store an ordered list of points. A
-        circle stores a centre and a radius instead. Every shape, whichever kind, also carries
-        an id, the layer it belongs to, whether it is closed, a height, and a colour — that is
-        the complete set of fields a shape can hold.</p>
+      <p>A rectangle, a polygon, a curve and a reference line all store an ordered list of
+        points; for a curve those are the points you clicked, and the smooth outline is
+        recomputed from them whenever it is needed. A circle stores a centre and a radius instead.
+        Every shape also carries an id, its level, whether it is closed, a height, a base offset,
+        a colour and an opacity, and a polygon made by a boolean operation can also carry
+        holes. That is the complete set of fields a shape can hold. The points of a polygon, a
+        curve or a line can be dragged one at a time; a rectangle or a circle only scales.</p>
 
       <h3>Visibility and locking</h3>
-      <p>The two flags do different amounts of work, and neither does what you might assume.
-        <b>Visibility</b> gates three things at once: whether a shape is drawn in the 2D plan,
-        whether it can be clicked there, and whether it gets a mesh built for the 3D view at
-        all — which is also why a hidden shape never reaches an OBJ, STL or PNG export: there is
-        no mesh for those to draw from. <b>Locking</b> is narrower and reaches nowhere near as
-        far: it is checked in exactly one place in the whole source, the same 2D click test that
-        visibility gates — a locked shape still draws, still meshes in 3D, and still exports
+      <p>Both are properties of a level, not of a shape. <b>Visibility</b> gates whether a
+        level's shapes are drawn in the plan, can be clicked, and get a mesh in the 3D view at
+        all — which is also why a hidden level never reaches an OBJ, STL or image export, and
+        never counts toward the GFA: there is no mesh for those to draw from. <b>Locking</b>
+        stops a level's shapes from being selected, box-selected, moved or pushed and pulled, in
+        the plan and in 3D; a locked shape still draws, still meshes, and still exports
         everywhere. <b>DXF export is the one exception to all of this</b>: it reads the shape
         list directly rather than the built meshes, and never checks visibility at all, so a
-        hidden shape's geometry still writes to a DXF file even though it never appears in an
-        OBJ, an STL, or a PNG.</p>
+        hidden level's geometry still writes to a DXF file. So does "Save as .obj"'s embedded
+        project, though not its geometry — see section 03.</p>
 
       <h3>Undo and redo</h3>
       <p>Every edit that calls a snapshot serialises the whole project state to a string and
         pushes it onto an undo stack, capped at 100 entries; undoing pops it back and parses it.
-        A large imported asset — an image's pixel data, an imported model's raw <span class="ms-mono">.obj</span>
-        text — is deliberately kept out of that state, in a separate lookup the source comments
-        explains exists <em>because</em> the snapshot serialises everything on every edit, and an
-        embedded image or model would otherwise be duplicated into every single undo step. The
-        consequence: undo and redo never touch that lookup at all, they only swap the project
-        state back and forth, and removing an image or a model never deletes its data from the
-        lookup either — it simply stops being referenced. So undoing an import removes it from
-        view and redoing it finds the same data still waiting, consistently, in both directions.
-        Nothing is ever stranded or restored inconsistently; the only way that data is ever
-        cleared is starting a new project outright.</p>
+        A move, scale or point drag takes its snapshot on the first movement, so a plain click
+        to select something leaves no step behind; a push/pull takes it the moment you press
+        on a face. A large imported asset — an image's pixel data, an imported
+        model's raw <span class="ms-mono">.obj</span> text — is deliberately kept out of that
+        state, in a separate lookup the source comments explains exists <em>because</em> the
+        snapshot serialises everything on every edit, and an embedded image or model would
+        otherwise be duplicated into every single undo step. Undo and redo never touch that
+        lookup; removing an image or a model never deletes its data from it either. So undoing
+        an import removes it from view and redoing it finds the same data still waiting,
+        consistently, in both directions. The display options in the View menu live in the
+        project state too, so undoing an edit also restores the display options as they were
+        when that edit was made.</p>
     </div>
   </div>
 
@@ -348,7 +369,9 @@ area = sum / 2</div>
       <p>Every closed shape writes as a single <span class="ms-mono">LWPOLYLINE</span> entity —
         not exploded into individual lines — and every circle writes as a <span class="ms-mono">CIRCLE</span>.
         That choice is deliberate: a polyline re-imports as one connected shape rather than a
-        scatter of disconnected segments, and it is what a real CAD package expects to read.</p>
+        scatter of disconnected segments, and it is what a real CAD package expects to read. A
+        curve writes as its sampled outline, and each hole of a boolean result as a separate
+        closed polyline. Dimensions and measured areas are not written.</p>
       <div class="ms-tbl"><table>
         <thead><tr><th>Field</th><th>DXF group code</th><th>Written</th></tr></thead>
         <tbody>
@@ -357,9 +380,9 @@ area = sum / 2</div>
           <tr><td>Closed flag</td><td class="ms-p">70</td><td><span class="ms-chip is-in">Yes</span></td></tr>
           <tr><td>Vertex count</td><td class="ms-p">90</td><td><span class="ms-chip is-in">Yes</span> (polylines only)</td></tr>
           <tr><td>Circle radius</td><td class="ms-p">40</td><td><span class="ms-chip is-in">Yes</span> (circles only)</td></tr>
-          <tr><td>Layer name</td><td class="ms-p">8</td><td><span class="ms-chip is-out">No</span> — every entity is written to the literal DXF layer <span class="ms-mono">"0"</span></td></tr>
-          <tr><td>Elevation / height</td><td class="ms-p">&mdash;</td><td><span class="ms-chip is-out">No</span></td></tr>
-          <tr><td>Colour</td><td class="ms-p">62</td><td><span class="ms-chip is-out">No</span></td></tr>
+          <tr><td>Layer name</td><td class="ms-p">8</td><td><span class="ms-chip is-out">No</span> — every entity is written to the literal DXF layer <span class="ms-mono">"0"</span>, whichever level it is on</td></tr>
+          <tr><td>Elevation / height / base offset</td><td class="ms-p">&mdash;</td><td><span class="ms-chip is-out">No</span></td></tr>
+          <tr><td>Colour / opacity</td><td class="ms-p">62</td><td><span class="ms-chip is-out">No</span></td></tr>
           <tr><td>Units</td><td class="ms-p">HEADER</td><td><span class="ms-chip is-out">No</span> — the file has no HEADER section at all</td></tr>
         </tbody>
         <caption>Coordinates are written at full JavaScript floating-point precision — no rounding, no fixed number of decimal places.</caption>
@@ -371,47 +394,70 @@ area = sum / 2</div>
         legacy <span class="ms-mono">POLYLINE</span>/<span class="ms-mono">VERTEX</span>/<span class="ms-mono">SEQEND</span>
         triple. Anything else in the file — a block, a hatch, text, a dimension — is silently
         skipped with no count kept anywhere. The only signal the interface gives you is a
-        warning if the file contained none of the four at all; a file with nine supported
-        entities and ninety unsupported ones reports success, with no way to tell from the
-        interface that anything was left out.</p>
+        warning if the file contained none of the four at all. Everything imported lands on the
+        active level, with a height of zero.</p>
 
       <h3>OBJ and STL export</h3>
-      <p>Both export the same set: every shape that is closed and has a height above zero. An
-        open reference line, or a footprint with no height yet, is excluded from either. Neither
-        format ever touches an imported reference model — see below. STL is written binary, with
-        every vertex and normal stored as a 32-bit float; OBJ is written as plain text, full
-        double precision, no rounding.</p>
+      <p>Both export the same set: every shape that is closed, has a height above zero, and is
+        on a visible level — holes and base offsets included. An open reference line, or a
+        footprint with no height yet, is excluded from either, and so is an imported reference
+        model. Colour and opacity are not written. STL is written binary, with every vertex and
+        normal stored as a 32-bit float; OBJ is written as plain text, full double precision, no
+        rounding.</p>
 
-      <h3>OBJ import</h3>
-      <p>An imported <span class="ms-mono">.obj</span> becomes a static reference, kept apart
-        from the drawn shapes in its own group from the moment it loads. It is never written into
-        the project's shape list, so it can be moved, scaled and deleted, but never edited as
-        geometry — and it never exports again. Draw over it, extrude your own footprint from it,
-        but the file you imported does not travel back out.</p>
+      <h3>Save as .obj</h3>
+      <p>Writes the same OBJ geometry as the export above, followed by the complete project —
+        the same JSON as "Save", base64-encoded — on comment lines starting with
+        <span class="ms-mono">#</span>. The OBJ format defines comment lines as ignored by
+        readers, so Rhino, Blender or SketchUp see ordinary geometry. Opening the file in this
+        tool again finds that block and restores the project exactly, every level, curve,
+        colour, dimension and imported asset included. Editing the file in another program and
+        saving it from there will usually drop the comment block; it then opens as the "other
+        programs" case below.</p>
+
+      <h3>Opening an .obj</h3>
+      <p>Two different things, from two different buttons. <b>Import &rsaquo; .OBJ</b> adds the
+        file as a static reference, kept apart from the drawn shapes in its own group: it can be
+        moved, scaled and deleted, but never edited as geometry, and it never exports again.
+        <b>Open</b>, given an <span class="ms-mono">.obj</span> with no embedded project,
+        replaces the current project with a rebuilt one. Each object whose vertices all lie on
+        exactly two heights, and whose side faces are all vertical, becomes an editable polygon:
+        its footprint is traced from the unshared edges of its top faces (inner rings become
+        holes) and its height is the gap between the two heights. Distinct base heights become
+        levels — the first at or above zero is the Ground Floor, those below are basements.
+        Any other object — a roof, a dome, a sloped face — comes in as one static reference
+        model. The file is assumed to be Y-up and in metres; a Z-up file will not rebuild.</p>
 
       <h3>Image import</h3>
       <p>You are asked for one number: the image's real-world width, in metres. Height is never
         asked for — it is always the width you gave, multiplied by the image's own pixel aspect
         ratio, so the underlay can be resized without ever distorting.</p>
 
-      <h3>PNG export</h3>
-      <p>Captures the 3D view only, at whatever it currently shows — the 2D plan is a separate
-        canvas and is never captured. If a shape is selected, its outline is genuine 3D scene
-        geometry, so it appears in the image; if a reference model is selected, its handle does
-        too. A push/pull cursor is styling on the pointer, not scene content, so it never shows.</p>
+      <h3>Image export (PNG / JPEG)</h3>
+      <p>Captures the 3D view only — the 2D plan is a separate canvas and is never captured —
+        at 1&times;, 2&times; or 4&times; the view's on-screen size, or a custom width, keeping
+        the view's proportions. The largest edge is capped by the graphics card (its maximum
+        render-buffer and viewport size, and never above 16&nbsp;384 pixels); the dialog shows
+        the size you will actually get. Backgrounds: transparent (PNG only), white, or the
+        on-screen dark grey. The selection highlight, a reference model's scale handle and any
+        in-progress dimension are left out; dimensions and measured areas only if you tick that
+        option. The "Translucent massing" style renders every volume at 55&nbsp;% opacity with
+        its edges drawn. Lines stay one pixel wide at any size, and labels are drawn from
+        fixed-resolution textures, so both look thinner or softer at 4&times;. JPEG is saved at
+        quality 0.95.</p>
 
       <h3>Save and open</h3>
       <p>A saved project is the entire state as JSON, with every imported image and model's raw
-        data folded in alongside it. Opening it reverses that exactly. This is the one format
-        that is fully round-trip safe, imported assets included.</p>
+        data folded in alongside it. Opening it reverses that exactly. A project saved by
+        version 1.0.0 opens with every new field at its default.</p>
 
       <h3>The round trip, plainly</h3>
-      <p>Draw, export DXF, re-import the DXF: you get the same editable shapes back, by design.
-        Draw, export OBJ or STL: nothing re-imports either back into editable geometry — an
-        imported <span class="ms-mono">.obj</span> only ever becomes a static reference, never a
-        drawn shape. Save, then open: everything comes back, including imported images and
-        models. Those are the only three round trips this tool has, and only one of them is
-        lossless in both directions.</p>
+      <p>Save then open, as <span class="ms-mono">.json</span> or with "Save as .obj": everything
+        comes back. Export DXF, re-import it: the same footprints come back, on one level, at no
+        height — a curve returns as a polygon of its sampled points, and a courtyard returns as a
+        separate filled shape rather than a hole. Export OBJ or STL: other programs read the
+        geometry; opening that plain OBJ here rebuilds the straight extrusions as polygons,
+        losing colour, curves and the circle/rectangle distinction.</p>
     </div>
   </div>
 
@@ -421,26 +467,29 @@ area = sum / 2</div>
     <div class="ms-secbody">
       <h3>Included</h3>
       <dl class="ms-ledger">
-        <div><span class="ms-chip is-in">In</span><dt>Plan drawing</dt><dd>A rectangle, a circle, a polygon, and a reference line, each snapped to the grid or to an existing vertex at the moment it is drawn.</dd></div>
-        <div><span class="ms-chip is-in">In</span><dt>Straight extrusion</dt><dd>A footprint carried up by its layer's height, or by dragging its top face in the 3D view.</dd></div>
-        <div><span class="ms-chip is-in">In</span><dt>Independent wall push/pull</dt><dd>Dragging a single side wall — or a circle's radius — moves only that wall or that radius, leaving the rest of the footprint fixed. Carries safety clamps rather than a correctness guarantee — see "Where a wall push/pull can go wrong" in section 05.</dd></div>
+        <div><span class="ms-chip is-in">In</span><dt>Plan drawing</dt><dd>A rectangle, a circle, a polygon, a curve, and a reference line, each snapped to the grid or to an existing corner — see trap 2 for exactly when.</dd></div>
+        <div><span class="ms-chip is-in">In</span><dt>Straight extrusion</dt><dd>A footprint carried straight up by a height, from its level's elevation plus its own base offset.</dd></div>
+        <div><span class="ms-chip is-in">In</span><dt>Levels and elevations</dt><dd>Floors stacked at their own elevations, drawn on one at a time, with true orthographic front, back, left and right elevations and labelled level lines in the 3D view.</dd></div>
+        <div><span class="ms-chip is-in">In</span><dt>Independent wall push/pull</dt><dd>Dragging a single side wall — or a circle's radius, or a curve's side — moves only that, leaving the rest of the footprint fixed. Carries safety clamps rather than a correctness guarantee — see section 05.</dd></div>
+        <div><span class="ms-chip is-in">In</span><dt>Measurement</dt><dd>Dimensions in the plan or between corners of the 3D model; measured areas; each shape's width &times; depth, footprint area, perimeter and volume.</dd></div>
+        <div><span class="ms-chip is-in">In</span><dt>Intersect, Union and Subtract</dt><dd>Between two extruded volumes, exact for straight extrusions — see section 05 for what a circle or a curve turns into.</dd></div>
         <div><span class="ms-chip is-in">In</span><dt>Copy, cut and paste</dt><dd>For a shape selection, a reference image, or an imported 3D model, each restorable through undo.</dd></div>
-        <div><span class="ms-chip is-in">In</span><dt>DXF round trip</dt><dd>Export writes one polyline per shape, or a circle; import reads the same entities back as editable shapes.</dd></div>
-        <div><span class="ms-chip is-part">Partly</span><dt>Reference import</dt><dd>A .obj model or an image can be placed, moved and scaled, but neither is checked against anything. A .obj stays a static reference for the life of the project and never re-exports.</dd></div>
-        <div><span class="ms-chip is-part">Partly</span><dt>Undo and redo</dt><dd>Every edit to shapes, images and models is undoable, but imported pixel and model data sit outside the undo history for size reasons — see "Undo and redo" above — and are never themselves deleted by an undo.</dd></div>
+        <div><span class="ms-chip is-in">In</span><dt>Round trips</dt><dd>A project saved as JSON or as .obj reopens exactly; a DXF re-imports as the same footprints — see section 03.</dd></div>
+        <div><span class="ms-chip is-part">Partly</span><dt>Floor area</dt><dd>Shown, but as a sum of footprints — a true gross floor area only when each storey is drawn as its own non-overlapping shape. See trap 1.</dd></div>
+        <div><span class="ms-chip is-part">Partly</span><dt>Reference import</dt><dd>A .obj model or an image can be placed, moved and scaled, but neither is checked against anything. A reference .obj stays static for the life of the project and never re-exports.</dd></div>
+        <div><span class="ms-chip is-part">Partly</span><dt>Undo and redo</dt><dd>Every edit to shapes, levels, images, models and measurements is undoable, but imported pixel and model data sit outside the undo history for size reasons — see "Undo and redo" above.</dd></div>
       </dl>
 
       <h3>Not modelled</h3>
-      <p>This list is long, and that is the honest shape of a massing tool rather than a gap to
-        apologise for.</p>
+      <p>This list is still long, and that is the honest shape of a massing tool rather than a
+        gap to apologise for.</p>
       <dl class="ms-ledger">
         <div><span class="ms-chip is-out">Out</span><dt>Any quantity beyond geometry</dt><dd>No structural, thermal, daylight or cost quantity is computed anywhere. There is no solver of any kind — see trap 3.</dd></div>
-        <div><span class="ms-chip is-out">Out</span><dt>Area, floor area or volume</dt><dd>Nowhere in the interface. The only area the tool computes is internal to the push/pull tool's own arithmetic — see trap 2.</dd></div>
-        <div><span class="ms-chip is-out">Out</span><dt>Solid modelling beyond a straight extrusion</dt><dd>No booleans, no holes or openings, no curved or sloped surfaces, no roofs.</dd></div>
-        <div><span class="ms-chip is-out">Out</span><dt>Material or thickness</dt><dd>A shape has a colour and a height. Nothing else — no material, no thickness, no assembly of any kind.</dd></div>
-        <div><span class="ms-chip is-out">Out</span><dt>Any relationship between shapes</dt><dd>Nothing here knows that one footprint sits beside, inside, or on top of another, beyond the arithmetic the wall push/pull tool applies to a single shape's own edges.</dd></div>
-        <div><span class="ms-chip is-out">Out</span><dt>More than one floor, in practice</dt><dd>The data model supports layers stacked at different elevations, but nothing in the interface ever creates a second one — see "Layers as floors" above.</dd></div>
-        <div><span class="ms-chip is-part">Note</span><dt>Geometry</dt><dd>Exactly what was drawn — a rectangle, a circle, a polygon or a line, on one plane, extruded straight up. Nothing curves, tapers or steps.</dd></div>
+        <div><span class="ms-chip is-out">Out</span><dt>Solid modelling beyond a straight extrusion</dt><dd>No sloped or tapered surfaces, no roofs, no openings in a wall, no fillets. A courtyard is the only kind of hole, and only a boolean operation makes one.</dd></div>
+        <div><span class="ms-chip is-out">Out</span><dt>Material or thickness</dt><dd>A shape has a colour, an opacity and a height. Nothing else — no material, no thickness, no assembly of any kind.</dd></div>
+        <div><span class="ms-chip is-out">Out</span><dt>Any lasting relationship between shapes</dt><dd>A boolean result is a new, independent shape with no link back to its inputs; a copy stacked on top of a volume does not follow it when the volume moves. Nothing here knows that one footprint sits beside, inside or on top of another.</dd></div>
+        <div><span class="ms-chip is-out">Out</span><dt>Storey logic</dt><dd>Levels are elevations with a name. Nothing checks that they don't overlap, that a volume fits within its level's height, or that the floor areas add up — see trap 1.</dd></div>
+        <div><span class="ms-chip is-part">Note</span><dt>Geometry</dt><dd>Exactly what was drawn — on one plane, extruded straight up. A curve is smooth in the plan only as far as its 12 samples per span; the 3D volume, every area and every export use those samples.</dd></div>
       </dl>
     </div>
   </div>
@@ -449,17 +498,47 @@ area = sum / 2</div>
   <div class="ms-sec">
     <div class="ms-sechead" id="ms-05"><span class="ms-secnum">05</span><h2>How exact the numbers are</h2></div>
     <div class="ms-secbody">
-      <p>The arithmetic itself is exact — there is no approximation, no solver converging on an
-        answer, nothing to be near. The honest question is one of resolution and
-        representation instead: what the grid costs you, what an export keeps, and what the
-        tool actually guarantees.</p>
+      <p>The arithmetic itself is exact for straight edges — there is no approximation, no
+        solver converging on an answer, nothing to be near. The honest questions are about
+        resolution and representation instead: what the grid costs you, where a curve becomes
+        straight lines, what an export keeps, and what the tool actually guarantees.</p>
 
       <h3>What the grid costs</h3>
-      <p>With Snap on, the smallest difference a newly drawn point can express is one grid unit
-        — one metre, by default. That guarantee holds only at the instant a shape is created;
-        trap 1 covers why it does not survive a move or a scale. The grid size itself has no
-        fixed range in the source — any positive number can be typed into the toolbar's grid
-        field.</p>
+      <p>With Snap on, the smallest difference a point can express is one grid unit — one metre,
+        by default — whether the point is being drawn, moved, scaled or edited. A move snaps the
+        corner of the moving shape nearest to where you grabbed it, and carries the rest of the
+        selection by the same amount, so a shape that started on the grid stays on it; a scale
+        snaps the dragged corner and scales about the opposite one. A dimension's offset snaps to
+        half a grid unit. The grid size itself has no fixed range in the source — any positive
+        number can be typed into the toolbar's grid field. Reference images and the 2D image
+        scale handles never snap.</p>
+
+      <h3>Heights and the 3D drags</h3>
+      <p>Heights follow different rules from plan positions. Dragging a top face, or Alt+dragging
+        a volume up or down, first looks for another visible volume's top or bottom, or any
+        level's elevation, within 12 screen pixels, and snaps there exactly. Failing that it
+        rounds to 0.1&nbsp;m with Snap on, or 0.01&nbsp;m with it off — never to the grid size.
+        Pushing a wall moves it by whole grid units with Snap on; a circle's radius snaps to whole
+        grid units, never below one. A curve's side drag scales the whole outline about the
+        average of its clicked points and does not snap at all.</p>
+
+      <h3>Circles and curves are polygons in 3D</h3>
+      <p>A circle's displayed area and perimeter are the exact &pi;r&sup2; and 2&pi;r. Its 3D volume,
+        every OBJ and STL export, and any boolean result made from it use a 32-sided polygon
+        instead — about 0.64&nbsp;% less area and 0.16&nbsp;% less perimeter. A curve has no exact
+        form to compare against: its area, perimeter, volume and exports all come from the same 12
+        samples per span, so they agree with each other, and with nothing more precise.</p>
+
+      <h3>Booleans</h3>
+      <p>Each volume is treated as a straight prism: its footprint between a bottom and a top
+        elevation. Intersect keeps the overlap of the footprints over the overlap of the two
+        height ranges. Subtract keeps the first-selected volume's footprint minus the second's
+        over its full height, plus the shared footprint above and below the second volume. Union
+        merges the footprints when both volumes span exactly the same heights; otherwise it keeps
+        the first volume whole and adds the pieces of the second that lie outside it. Results are
+        new polygons on the first volume's level, in its colour and opacity; a circle or a curve
+        becomes its sampled polygon and stays one. Slivers smaller than 0.0001&nbsp;m&sup2; are
+        discarded, and heights and base offsets are rounded to 0.1&nbsp;mm.</p>
 
       <h3>Precision in the exports</h3>
       <p>DXF and OBJ both write coordinates at full double-precision JavaScript numbers, with no
@@ -467,11 +546,6 @@ area = sum / 2</div>
         physical reason rather than a design choice: the binary STL format itself stores every
         vertex and normal as a 32-bit float, so re-importing an STL loses precision the DXF or
         OBJ export of the same model would not.</p>
-
-      <h3>A non-snapped point is easy to produce</h3>
-      <p>Turn Snap off and draw normally, or leave Snap on and simply move or scale a shape
-        afterwards — trap 1 again. Either way, nothing marks the resulting coordinates as
-        off-grid; they look the same as a snapped point everywhere they are displayed.</p>
 
       <h3>Where a wall push/pull can go wrong</h3>
       <p>The side-wall and radius drags carry three safety limits, and none of them is a
@@ -486,14 +560,14 @@ area = sum / 2</div>
         general case. The drag distance itself is separately clamped to five hundred units in
         either direction, a safety limit against a rare instability in the ground-plane
         arithmetic at a grazing camera angle, not a meaningful design constraint; a circle's
-        radius is clamped between 0.05 and 1000 units by the same drag.</p>
+        radius is clamped between 0.05 and 1000 units by the same drag. A courtyard's own walls
+        cannot be pushed at all.</p>
 
       <h3>What is actually asserted</h3>
-      <p>The solid you see is the footprint you drew, extruded by the layer's height or by
-        however far you dragged it, and nothing more. There is no automated test suite anywhere
-        in this application's source — no test files, no test script, nothing. What the tool
-        computes has been read from the code for this page; it has not been checked against
-        itself by any suite of its own.</p>
+      <p>The solid you see is the footprint you drew, extruded by its height from its base, and
+        nothing more. There is no automated test suite anywhere in this application's source —
+        no test files, no test script, nothing. What the tool computes has been read from the
+        code for this page; it has not been checked against itself by any suite of its own.</p>
     </div>
   </div>
 
@@ -506,42 +580,50 @@ area = sum / 2</div>
         <thead><tr><th>Parameter</th><th class="ms-n">Default</th><th class="ms-n">Range</th><th>Notes</th></tr></thead>
         <tbody>
           <tr><td>Grid size</td><td class="ms-d">1 m</td><td class="ms-n">Any positive number</td><td>Toolbar field</td></tr>
-          <tr><td>Snap</td><td class="ms-d">On</td><td class="ms-n">On / off</td><td>Toolbar checkbox — see trap 1 for what it does not cover</td></tr>
+          <tr><td>Snap</td><td class="ms-d">On</td><td class="ms-n">On / off</td><td>Toolbar checkbox — see trap 2 for what it does not cover</td></tr>
           <tr><td>Major grid line every</td><td class="ms-d">5</td><td class="ms-n">&mdash;</td><td>No control in the interface — fixed in the source</td></tr>
         </tbody>
       </table></div>
 
-      <h4>The layer</h4>
+      <h4>Each level</h4>
       <div class="ms-tbl"><table>
         <thead><tr><th>Field</th><th class="ms-n">Default</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td>Name</td><td class="ms-d">Ground Floor</td><td>No control in the interface</td></tr>
-          <tr><td>Elevation</td><td class="ms-d">0 m</td><td>No control in the interface</td></tr>
-          <tr><td>Default height</td><td class="ms-d">3 m</td><td>No control in the interface</td></tr>
-          <tr><td>Colour</td><td class="ms-d">#4fa3ff</td><td>No control in the interface</td></tr>
-          <tr><td>Visible / locked</td><td class="ms-d">true / false</td><td>Exist in the data model; no control in the interface</td></tr>
+          <tr><td>Name</td><td class="ms-d">Ground Floor; then Floor 1, 2&hellip;</td><td>Levels panel</td></tr>
+          <tr><td>Elevation</td><td class="ms-d">0 m; then the top of the tallest level</td><td>Levels panel — any number</td></tr>
+          <tr><td>Default height</td><td class="ms-d">3 m</td><td>Levels panel — at least 0.1 m; applies to shapes drawn afterwards</td></tr>
+          <tr><td>Colour</td><td class="ms-d">From a fixed palette</td><td>Levels panel — the colour new shapes on it receive</td></tr>
+          <tr><td>Visible / locked</td><td class="ms-d">true / false</td><td>Levels panel — see "Visibility and locking"</td></tr>
         </tbody>
-        <caption>Nothing in the interface edits the layer itself. Every project runs with exactly this one, at exactly these values.</caption>
       </table></div>
 
       <h4>Per-shape properties</h4>
-      <p>Two things, and only two: <b>height</b>, which sets the extrusion, and <b>colour</b>,
-        picked from a swatch palette or a custom hex value. That is the complete set of fields
-        the Properties panel exposes for a shape.</p>
+      <p>In the Properties panel: <b>level</b>, <b>colour</b> (a 24-colour palette, a hex
+        value, or the system colour picker), <b>opacity</b> (10–100&nbsp;%), <b>height</b>,
+        <b>base offset</b>, and, for a curve, whether it is <b>closed</b>. The same panel shows
+        the measurements from section 01 as read-only values. With several shapes selected it
+        sets colour and opacity for all of them, shows their total footprint and volume, and —
+        for exactly two extruded shapes — offers Intersect, Union and Subtract.</p>
 
       <h4>View and camera</h4>
       <div class="ms-tbl"><table>
         <thead><tr><th>Parameter</th><th class="ms-n">Default</th><th class="ms-n">Options</th></tr></thead>
         <tbody>
           <tr><td>View mode</td><td class="ms-d">Split</td><td class="ms-n">2D / Split / 3D</td></tr>
-          <tr><td>Camera preset</td><td class="ms-d">&mdash;</td><td class="ms-n">Top, Front, Isometric, Frame all</td></tr>
+          <tr><td>Camera preset</td><td class="ms-d">&mdash;</td><td class="ms-n">Top, Front, Back, Left, Right (orthographic), Iso (perspective), Fit</td></tr>
+          <tr><td>Projection</td><td class="ms-d">Perspective</td><td class="ms-n">Perspective / orthographic</td></tr>
+          <tr><td>Edges on volumes</td><td class="ms-d">On</td><td class="ms-n">View menu</td></tr>
+          <tr><td>X-ray, area labels, level lines</td><td class="ms-d">Off</td><td class="ms-n">View menu</td></tr>
+          <tr><td>Dimensions &amp; areas shown</td><td class="ms-d">On</td><td class="ms-n">View menu</td></tr>
         </tbody>
       </table></div>
 
       <h4>Controls that change nothing numerical</h4>
-      <p>View mode, camera presets, and a shape's colour are all presentation. None of them
-        touches a coordinate, a height, or an export. The only things that change a number are
-        drawing, moving, scaling, push/pull, and the grid and snap settings above.</p>
+      <p>View mode, camera presets, projection, the View menu, colour and opacity are all
+        presentation. None of them touches a coordinate, a height, an area, or an export's
+        geometry. The only things that change a number are drawing, moving, scaling, editing
+        points, push/pull, booleans, level elevations and base offsets, and the grid and snap
+        settings above.</p>
     </div>
   </div>
 
@@ -556,6 +638,12 @@ area = sum / 2</div>
           pushed face. The mechanics match; nothing here checks the result against anything.</li>
         <li><b>Plan-to-solid workflow.</b> Draw a footprint, give it a height, and you have a
           massing volume — the same first move a SketchUp or Rhino study starts with.</li>
+        <li><b>Booleans.</b> Intersect, Union and Subtract are the same three operations a
+          modelling package offers between solids — here restricted to straight vertical
+          extrusions, which is what makes them exact.</li>
+        <li><b>Levels and elevations.</b> Stacked floors at set elevations, read in an
+          orthographic elevation, are how a CAD or BIM package presents a building's
+          storeys.</li>
         <li><b>DXF as a real interchange format.</b> The DXF this tool writes and reads uses
           standard entity types a CAD package expects, closed as connected polylines rather than
           loose lines.</li>
@@ -565,15 +653,19 @@ area = sum / 2</div>
       <ul>
         <li><b>No object model beyond a footprint and a height.</b> A Revit wall carries a type,
           a thickness, layers, and relationships to the walls, floors and rooms around it. A
-          Massing Studio "wall" is one side of an extruded rectangle — geometry, a colour, and
+          Massing Studio "wall" is one side of an extruded footprint — geometry, a colour, and
           nothing else. There is no wall object here to compare.</li>
+        <li><b>Levels without storeys.</b> A BIM level knows which elements belong to each
+          storey and reports areas per floor accordingly. Here a level is an elevation with a
+          name, and the area figures are sums of footprints — trap 1.</li>
         <li><b>No BIM metadata of any kind.</b> No IFC classes, no element properties, no
-          schedules, no quantities beyond what you would measure off the model yourself.</li>
+          schedules, no quantities beyond the geometric ones in section 01.</li>
         <li><b>No analysis.</b> Nothing here computes a structural, thermal, daylight or cost
           quantity — trap 3 again. A BIM tool with an analysis link, or a dedicated analysis
           package, is what that question needs.</li>
-        <li><b>No parametric relationships.</b> Move one shape and nothing else in the model
-          reacts to it, because nothing here knows the shapes are related at all.</li>
+        <li><b>No history or parametric relationships.</b> A boolean result forgets its inputs,
+          and moving one shape changes nothing else in the model, because nothing here knows the
+          shapes are related at all.</li>
       </ul>
 
       <p class="ms-note">The honest place for this tool: a fast way to test a footprint and a
@@ -595,8 +687,9 @@ area = sum / 2</div>
         <h3>Footprint depth governs how much of a room is daylit</h3>
         <ol class="ms-steps">
           <li>Draw a single rectangle 6 m wide. Set its height to one storey.</li>
-          <li>Extend its depth from 6 m to 18 m in three steps, redrawing or dragging a side
-            wall each time — the tool's own push/pull, applied to one wall only.</li>
+          <li>Extend its depth from 6 m to 18 m in three steps, pushing one side wall each time
+            — the tool's own push/pull, applied to one wall only. Check each depth with the
+            Dimension tool.</li>
           <li>At each depth, mark by eye how far daylight from the 6 m face is likely to reach
             into the plan — roughly twice the window head height is the usual rule of thumb,
             applied here entirely outside the tool.</li>
@@ -612,29 +705,30 @@ area = sum / 2</div>
         <span class="ms-ex-n">Exercise 02</span>
         <h3>The same floor area takes very different forms once storeys change</h3>
         <ol class="ms-steps">
-          <li>Draw a footprint and extrude it to one storey. Read its plan dimensions and, using
-            the shoelace formula this page names in section 01, compute its area by hand — the
-            tool will not do this for you (trap 2).</li>
-          <li>Redraw a second footprint at a quarter of the plan area, and extrude it to four
-            storeys instead.</li>
-          <li>Compare the two massing volumes in the 3D view. Note that their total floor area
-            is the same by construction, and their footprint and massing are not.</li>
-          <li>Try a third: half the footprint area, two storeys, and see where it sits between
-            the other two.</li>
+          <li>Draw a footprint and extrude it to one storey. Compute its area by hand, using the
+            shoelace formula this page names in section 01, and check your answer against the
+            footprint area in the Properties panel.</li>
+          <li>Add three levels. Draw a second footprint at a quarter of the plan area and stack
+            it four storeys high with "Stack copy on top" — one shape per storey.</li>
+          <li>Compare the two massing volumes in the 3D view and in the Front elevation. Their
+            total floor area is the same by construction; read the Levels panel to confirm it,
+            and note that their footprint and massing are not.</li>
+          <li>Now draw a third option as a single shape, half the footprint area and two storeys
+            tall. Note what the status bar's GFA says about it — and why.</li>
         </ol>
-        <p class="ms-principle"><b>Principle.</b> Because the tool never computes or displays an
-          area, comparing options by floor area is entirely the student's own arithmetic —
-          exactly the point of trap 2. The tool's job is to make the volumes visible once you
-          have decided what to compare.</p>
+        <p class="ms-principle"><b>Principle.</b> The tool shows a footprint area, not a floor
+          area. Step 4 is trap 1 in action: a two-storey volume drawn as one shape counts once.
+          Checking the tool's number against your own arithmetic, and knowing what it sums, is
+          the habit this exercise builds.</p>
       </div>
 
       <div class="ms-ex">
         <span class="ms-ex-n">Exercise 03</span>
         <h3>A massing exported as .obj becomes another tool's input</h3>
         <ol class="ms-steps">
-          <li>Build a simple massing study — a footprint or two, extruded to a few storeys.</li>
-          <li>Export it as <span class="ms-mono">.obj</span> (section 03 above covers exactly
-            what does and does not travel with it — no colour, no layer, geometry only).</li>
+          <li>Build a simple massing study — a footprint or two, stacked over a few levels.</li>
+          <li>Save it with "Save as .obj" (section 03 above covers exactly what travels with it:
+            the geometry for other programs, and the whole project for this one).</li>
           <li>Import that <span class="ms-mono">.obj</span> into Solar Analysis Lab or 3D Wind
             Rose, both of which read the same format.</li>
           <li>Note what each tool then does with the geometry that Massing Studio itself has no
@@ -646,8 +740,8 @@ area = sum / 2</div>
           .obj export exists for exactly this handoff.</p>
       </div>
 
-      <p class="ms-note">A caution for all three: read the model, not a number the tool never
-        gives you. Where a figure matters, compute it yourself and say how.</p>
+      <p class="ms-note">A caution for all three: read the model, and know what each number the
+        tool gives you actually adds up. Where a figure matters, check it yourself and say how.</p>
     </div>
   </div>
 
@@ -665,8 +759,10 @@ area = sum / 2</div>
       Both permit any use, including commercial, and ask only that you credit the author. The
       tool bundles <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a>
       r160 (also MIT), together with its OrbitControls, OBJExporter, OBJLoader and STLExporter
-      addons from the same release — the full notice travels inside the application file's own
-      header. No module in the application's own source makes a network request of any kind;
+      addons from the same release, and
+      <a href="https://github.com/mfogel/polygon-clipping" target="_blank" rel="noopener">polygon-clipping</a>
+      0.15.7 (also MIT) for the boolean operations — both notices travel inside the application
+      file's own header. No module in the application's own source makes a network request of any kind;
       three.js itself bundles generic loader code capable of one, for features this application
       never calls.</p>
     <p>A building you make with the tool is <b>yours</b>. Neither licence claims anything over
@@ -676,40 +772,46 @@ area = sum / 2</div>
     <p>Cite it as software. Keeping the copyright notice in the file satisfies the licence; a
       citation is the scholarly act on top of that.</p>
     <p class="ms-ref">Al-Obaidi, K. M. (2026). <i>Massing Studio: A browser-based plan drawing and extrusion tool</i>
-      (Version 1.0.0) [Computer software]. Zenodo.
-      <a href="https://doi.org/10.5281/zenodo.22814302" target="_blank" rel="noopener">https://doi.org/10.5281/zenodo.22814302</a></p>
+      (Version 1.1.0) [Computer software]. Zenodo.
+      <a href="https://doi.org/10.5281/zenodo.22814301" target="_blank" rel="noopener">https://doi.org/10.5281/zenodo.22814301</a></p>
 <pre>@software{alobaidi2026massingstudio,
   author    = {Al-Obaidi, Karam M.},
   title     = {Massing Studio: A browser-based plan drawing
                and extrusion tool},
   year      = {2026},
-  version   = {1.0.0},
+  version   = {1.1.0},
   publisher = {Zenodo},
-  doi       = {10.5281/zenodo.22814302},
+  doi       = {10.5281/zenodo.22814301},
   url       = {https://karam.me.uk/applications/massing-studio/},
   note      = {Code MIT licensed; accompanying material CC BY 4.0}
 }</pre>
-    <p>That DOI names this release. To cite the software in general rather than version 1.0.0, use
-      the concept DOI <a href="https://doi.org/10.5281/zenodo.22814301" target="_blank" rel="noopener">10.5281/zenodo.22814301</a>,
-      which always resolves to the newest version.</p>
-    <p>Report the <b>grid size</b> and <b>whether Snap was on</b> alongside any quoted figure,
-      and say whether the shape in question was moved or scaled after it was drawn — per trap 1,
-      that changes whether the coordinates are still multiples of the grid at all.</p>
+    <p>That is the concept DOI, which always resolves to the newest version. Zenodo gives each
+      release its own version DOI when it is published; once version 1.1.0 has one, cite that
+      instead to name this release exactly. Version 1.0.0 remains citable as
+      <a href="https://doi.org/10.5281/zenodo.22814302" target="_blank" rel="noopener">10.5281/zenodo.22814302</a>.</p>
+    <p>Report the <b>grid size</b> and <b>whether Snap was on</b> alongside any quoted figure.
+      Quote an area as a <b>footprint area</b> unless you have drawn each storey as its own
+      shape — per trap 1, the tool's floor-area figures are sums of footprints.</p>
 
     <h3>References</h3>
-    <p>What the code itself names, and nothing else. The source's own vendored licence file
-      names three.js and its four addons; nothing else in the application cites an external
-      work. The DXF entity types (<span class="ms-mono">LINE</span>, <span class="ms-mono">CIRCLE</span>,
+    <p>What the code itself names, and nothing else. The source's vendored licence files name
+      three.js with its four addons, and polygon-clipping; nothing else in the application
+      cites an external work. The DXF entity types (<span class="ms-mono">LINE</span>, <span class="ms-mono">CIRCLE</span>,
       <span class="ms-mono">LWPOLYLINE</span>, <span class="ms-mono">POLYLINE</span>,
       <span class="ms-mono">VERTEX</span>, <span class="ms-mono">SEQEND</span>) are the
-      format's own vocabulary, and the shoelace formula in section 01 is named in a comment
-      but attributed to no one — so neither has an entry below.</p>
+      format's own vocabulary, and the shoelace formula and the centripetal Catmull-Rom curve
+      in section 01 are named in comments but attributed to no one — so none of these has an
+      entry below.</p>
     <ul class="ms-refs">
       <li>Three.js authors. (2023). <i>three.js</i> (r160) [Computer software]. MIT licensed.
         <a href="https://github.com/mrdoob/three.js/releases/tag/r160" target="_blank" rel="noopener">https://github.com/mrdoob/three.js/releases/tag/r160</a>
         &mdash; the 3D engine the application is built on, with its OrbitControls,
         OBJExporter, OBJLoader and STLExporter addons from the same release, all named in the
         source's own vendored licence file.</li>
+      <li>Fogel, M. (2023). <i>polygon-clipping</i> (0.15.7) [Computer software]. MIT licensed.
+        <a href="https://github.com/mfogel/polygon-clipping" target="_blank" rel="noopener">https://github.com/mfogel/polygon-clipping</a>
+        &mdash; the 2D clipping behind Intersect, Union and Subtract (section 05), named in the
+        source's vendored licence file.</li>
     </ul>
     <p class="ms-note"><b>Further reading</b> &mdash; not named by the code, and nothing on this
       page rests on any of these. They are useful background for a student working with this
@@ -726,6 +828,13 @@ area = sum / 2</div>
         <a href="https://help.autodesk.com/view/OARX/2023/ENU/" target="_blank" rel="noopener">https://help.autodesk.com/view/OARX/2023/ENU/</a>
         &mdash; the documentation set containing the DXF Reference section (entity types,
         group codes) behind the format the application reads and writes (section 03).</li>
+      <li>Martínez, F., Rueda, A. J., &amp; Feito, F. R. (2009). A new algorithm for computing
+        Boolean operations on polygons. <i>Computers &amp; Geosciences, 35</i>(6), 1177&ndash;1185.
+        &mdash; the algorithm polygon-clipping's own documentation says it implements.</li>
+      <li>Yuksel, C., Schaefer, S., &amp; Keyser, J. (2011). Parameterization and applications
+        of Catmull&ndash;Rom curves. <i>Computer-Aided Design, 43</i>(7), 747&ndash;755. &mdash;
+        why the centripetal parameterisation the Curve tool uses never forms cusps or loops
+        between unevenly spaced points.</li>
     </ul>
     <p class="ms-cite">For anything beyond geometry, none of the above substitutes for the
       appropriate specialist tool or an expert in the relevant field.</p>

@@ -192,27 +192,26 @@
       method notes</a> give the source values and the references behind every statement here.</p>
     <div class="ms-byline">
       <span><b>Audience</b> Architecture students and staff</span>
-      <span><b>Method</b> Plan drawing &middot; straight extrusion &middot; no analysis</span>
+      <span><b>Method</b> Plan drawing &middot; straight extrusion &middot; measurement &middot; no analysis</span>
       <span><b>Runs</b> Entirely in the browser</span>
-      <span><b>Version</b> 1.0.0 &middot; 17 September 2026</span>
+      <span><b>Version</b> 1.1.0 &middot; 26 September 2026</span>
     </div>
   </div>
 
   <div class="ms-traps">
     <h2>Three things to know before you cite a number</h2>
     <ol>
-      <li><b>Snapping only ever happens once, when a shape is first drawn.</b> The Select tool's
-        move and scale handles read the pointer directly and <b>never call the snapping function
-        at all</b>, whatever the Snap checkbox says. Draw a rectangle with Snap on and its corners
-        land on exact grid multiples &mdash; but drag or resize that same rectangle and it can end
-        up anywhere, at an arbitrary fraction of a metre, <b>with nothing on screen to say so and
-        no way to snap it back</b>. A coordinate read off this tool is the grid's answer only for
-        a shape that has never been moved.</li>
-      <li><b>There is no area anywhere in the interface.</b> The tool computes a signed polygon
-        area internally &mdash; the shoelace formula &mdash; but only to work out which way an edge
-        faces and to stop a push/pull drag folding a shape in on itself. It is never shown on
-        screen, never in a properties panel, never in an export. <b>If you want the area of a
-        footprint you have drawn, you compute it yourself.</b></li>
+      <li><b>"GFA" here is a sum of footprints, not of floors.</b> The status bar's GFA, and each
+        level's area in the Levels panel, add up every extruded shape's plan area once, whatever
+        its height. <b>A 9&nbsp;m volume drawn as one shape counts once, not three storeys</b>,
+        and overlapping shapes are both counted in full. It is a true floor area only when each
+        storey is drawn as its own non-overlapping shape &mdash; and nothing checks that it is.</li>
+      <li><b>Snapping is stronger than the Snap checkbox, and weaker than the grid.</b> Snapping
+        to an existing corner fires <b>whether or not Snap is on</b> &mdash; drawing, moving,
+        scaling, editing points, placing dimensions. With Snap off everything else goes
+        free-hand, with nothing marking a coordinate as off-grid. And the 3D push/pull rounds a
+        height to <b>0.1&nbsp;m, not to the grid</b>, unless it lands near another volume's top
+        or a level.</li>
       <li><b>Nothing here is analysis.</b> No module computes a structural, thermal, daylight or
         cost quantity of any kind, and there is no solver &mdash; iterative or otherwise &mdash;
         anywhere in the source.</li>
@@ -222,38 +221,35 @@
   <section class="ms-sec">
     <div class="ms-sechead"><span class="ms-secnum"></span><h2>What it computes</h2></div>
     <div class="ms-secbody">
-      <p>Eight things, and none of them is more than a few lines of arithmetic: a snapped
-        coordinate, a distance, a signed polygon area, a centroid, a bounding box, a
-        point-to-segment distance, a line intersection, and an extruded height. <b>The height is
-        the only one that becomes a 3D dimension.</b></p>
-      <p class="ms-note">The one formula worth naming is the <b>shoelace formula</b> for signed
-        area, named as such in the source's own comment. As above, this number is never shown to
-        you &mdash; it exists to tell the push/pull tool which way an edge faces, and to catch a
-        drag that would collapse a footprint to nothing.</p>
+      <p>Geometry only: snapped coordinates, distances (in plan and in 3D), footprint area and
+        perimeter, volume as area &times; height, a smooth curve through the points you click,
+        and the footprints of Intersect, Union and Subtract. <b>Height is still the only thing
+        that becomes a 3D dimension</b> &mdash; every volume is a footprint carried straight
+        up.</p>
+      <p class="ms-note">The one formula worth naming is the <b>shoelace formula</b> for polygon
+        area, named as such in the source's own comment. Since version 1.1.0 its result is shown
+        to you, holes subtracted &mdash; with trap 1's warning about what the totals add up.</p>
     </div>
   </section>
 
   <section class="ms-sec">
     <div class="ms-sechead"><span class="ms-secnum"></span><h2>Not modelled at all</h2></div>
     <div class="ms-secbody">
-      <p class="ms-note">This list is long, and <b>that is the honest shape of a massing tool
-        rather than a gap to apologise for.</b></p>
+      <p class="ms-note">This list is still long, and <b>that is the honest shape of a massing
+        tool rather than a gap to apologise for.</b></p>
       <div class="ms-ledger">
         <div><span class="ms-chip is-out">Out</span><dt>Any quantity beyond geometry</dt>
-          <dd>No structural, thermal, daylight or cost quantity is computed anywhere. And no area,
-            floor area or volume is shown &mdash; the only area the tool computes is internal to
-            the push/pull tool's own arithmetic.</dd></div>
+          <dd>No structural, thermal, daylight or cost quantity is computed anywhere.</dd></div>
         <div><span class="ms-chip is-out">Out</span><dt>Solid modelling beyond a straight extrusion</dt>
-          <dd>No booleans, no holes or openings, no curved or sloped surfaces, no roofs. Nothing
-            curves, tapers or steps.</dd></div>
+          <dd>No sloped or tapered surfaces, no roofs, no openings in a wall. Booleans work only
+            between straight vertical extrusions, and a courtyard is the only kind of hole.</dd></div>
         <div><span class="ms-chip is-out">Out</span><dt>Material, thickness, or relationships</dt>
-          <dd>A shape has a colour and a height, and nothing else. Nothing here knows that one
-            footprint sits beside, inside or on top of another.</dd></div>
-        <div><span class="ms-chip is-part">Partly</span><dt>Reference imports, and floors</dt>
-          <dd>An <span class="ms-mono">.obj</span> or an image can be placed, moved and scaled, but
-            neither is checked against anything, and an imported model stays a static reference for
-            the life of the project. The data model supports stacked layers, but
-            <b>nothing in the interface ever creates a second one.</b></dd></div>
+          <dd>A shape has a colour, an opacity and a height, and nothing else. A boolean result
+            forgets its inputs; a copy stacked on a volume doesn't follow it.</dd></div>
+        <div><span class="ms-chip is-part">Partly</span><dt>Storeys</dt>
+          <dd>Levels stack floors at set elevations, with true orthographic elevations, but
+            <b>a level is an elevation with a name</b>: nothing checks overlaps, or that a volume
+            fits within its level.</dd></div>
       </div>
     </div>
   </section>
@@ -261,30 +257,28 @@
   <section class="ms-sec">
     <div class="ms-sechead"><span class="ms-secnum"></span><h2>How exact the numbers are</h2></div>
     <div class="ms-secbody">
-      <p><b>The arithmetic itself is exact</b> &mdash; there is no approximation, no solver
-        converging on an answer, nothing to be near. The honest questions are about resolution and
-        representation instead.</p>
+      <p><b>The arithmetic is exact for straight edges</b> &mdash; no solver, nothing converging.
+        The honest questions are about resolution and representation.</p>
       <div class="ms-ledger">
         <div><span class="ms-chip is-part">1 grid unit</span><dt>What the grid costs</dt>
-          <dd>With Snap on, the smallest difference a newly drawn point can express is one grid
-            unit &mdash; one metre by default. <b>That guarantee holds only at the instant a shape
-            is created.</b></dd></div>
+          <dd>With Snap on, a point drawn, moved, scaled or edited lands on a whole grid unit
+            &mdash; one metre by default. <b>Heights snap to 0.1&nbsp;m</b>, or to another
+            volume's top or a level.</dd></div>
+        <div><span class="ms-chip is-part">32 sides</span><dt>Circles and curves</dt>
+          <dd>A circle's displayed area is the exact &pi;r&sup2;, but its 3D volume, exports and
+            boolean results use a 32-sided polygon &mdash; <b>about 0.64&nbsp;% less area</b>. A
+            curve is 12 straight segments per span everywhere.</dd></div>
         <div><span class="ms-chip is-in">full double</span><dt>Precision in the exports</dt>
-          <dd>DXF and OBJ both write coordinates at full precision with no rounding.
-            <b>STL is the exception</b>, for a format reason rather than a design choice: binary
-            STL stores every vertex as a 32-bit float, so re-importing one loses precision the
-            others would not.</dd></div>
+          <dd>DXF and OBJ write coordinates at full precision with no rounding. <b>STL is the
+            exception</b>: binary STL stores every vertex as a 32-bit float.</dd></div>
         <div><span class="ms-chip is-out">Not guarded</span><dt>Where a wall push/pull can go wrong</dt>
-          <dd>The drag is rejected if it would shrink the area below five per cent of its start,
-            but <b>area alone cannot catch every way a polygon folds in on itself</b> &mdash; a
-            drag that crosses one of the shape's own non-adjacent edges while leaving the area
-            roughly unchanged is not guarded against. And where the neighbouring edges are
-            near-parallel, the code falls back to moving both corners in a straight line: a
-            reasonable approximation, not the same geometric operation.</dd></div>
+          <dd>A drag that would shrink the area below five per cent is rejected, but <b>area alone
+            cannot catch every way a polygon folds in on itself</b>, and near-parallel neighbouring
+            edges fall back to a straight-line approximation.</dd></div>
         <div><span class="ms-chip is-out">None</span><dt>What is actually asserted</dt>
-          <dd><b>There is no automated test suite anywhere in this application's source</b> &mdash;
-            no test files, no test script, nothing. What the tool computes has been read from the
-            code; it has not been checked against itself by any suite of its own.</dd></div>
+          <dd><b>There is no automated test suite anywhere in this application's source.</b> What
+            the tool computes has been read from the code; it has not been checked against itself
+            by any suite of its own.</dd></div>
       </div>
     </div>
   </section>
@@ -292,17 +286,21 @@
   <section class="ms-sec">
     <div class="ms-sechead"><span class="ms-secnum"></span><h2>What survives an export</h2></div>
     <div class="ms-secbody">
-      <p>Three round trips exist, and <b>only one is lossless in both directions</b>:</p>
       <div class="ms-ledger">
         <div><span class="ms-chip is-in">Both ways</span><dt>Save, then open</dt>
-          <dd>The entire state as JSON, with every imported image and model folded in. Opening
-            reverses it exactly.</dd></div>
-        <div><span class="ms-chip is-in">Both ways</span><dt>DXF export, then DXF import</dt>
-          <dd>One polyline per shape, or a circle; import reads the same entities back as
-            <b>editable</b> shapes, by design.</dd></div>
-        <div><span class="ms-chip is-out">One way</span><dt>OBJ and STL export</dt>
-          <dd>Nothing re-imports either back into editable geometry. An imported
-            <span class="ms-mono">.obj</span> only ever becomes a static reference.</dd></div>
+          <dd>As <span class="ms-mono">.json</span>, or with <b>Save as .obj</b> &mdash; ordinary
+            OBJ geometry for other programs, with the whole project carried in comment lines they
+            ignore. Either reopens exactly.</dd></div>
+        <div><span class="ms-chip is-part">Footprints</span><dt>DXF export, then DXF import</dt>
+          <dd>One polyline per shape, or a circle; they come back editable, but <b>on one level,
+            at no height</b>, with curves as polygons and courtyards as separate shapes.</dd></div>
+        <div><span class="ms-chip is-part">Extrusions</span><dt>Opening another program's .obj</dt>
+          <dd>Straight vertical extrusions are <b>rebuilt as editable shapes</b>, one level per
+            floor height; anything else &mdash; a roof, a dome &mdash; comes in as a static
+            reference.</dd></div>
+        <div><span class="ms-chip is-out">One way</span><dt>STL, and image export</dt>
+          <dd>STL is geometry for printing; PNG/JPEG export, at up to four times the view or a
+            custom width, on a transparent or white background, is a picture.</dd></div>
       </div>
     </div>
   </section>
@@ -311,17 +309,15 @@
     <div class="ms-sechead"><span class="ms-secnum"></span><h2>Against SketchUp, BIM and CAD</h2></div>
     <div class="ms-secbody">
       <p><b>Agrees</b> on push/pull &mdash; dragging a top face or a side wall is the same operation
-        SketchUp performs &mdash; on the plan-to-solid workflow, and on DXF as a real interchange
-        format, written with standard entity types closed as connected polylines.</p>
+        SketchUp performs &mdash; on Intersect, Union and Subtract between solids, on stacked
+        levels read in orthographic elevation, and on DXF as a real interchange format.</p>
       <p><b>Diverges</b> in having no object model beyond a footprint and a height. A Revit wall
         carries a type, a thickness, layers and relationships; <b>a Massing Studio &ldquo;wall&rdquo;
-        is one side of an extruded rectangle</b>. No BIM metadata, no analysis, and no parametric
-        relationships &mdash; move one shape and nothing else reacts, because nothing here knows
-        the shapes are related at all.</p>
+        is one side of an extruded footprint</b>, and a level knows nothing of the storey it
+        names. No BIM metadata, no analysis, no history &mdash; move one shape and nothing else
+        reacts.</p>
     </div>
   </section>
-
-  
 
   <section class="ms-sec">
     <div class="ms-sechead"><span class="ms-secnum"></span><h2>Where it stops</h2></div>
@@ -342,8 +338,9 @@
       <b><a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a></b>.
       Both permit any use, including commercial, and ask only that you credit the author. The tool
       bundles <a href="https://threejs.org" target="_blank" rel="noopener">three.js r160</a> (also
-      MIT) with four addons from the same release; the full notice travels inside the application
-      file's own header.</p>
+      MIT) with four addons from the same release, and
+      <a href="https://github.com/mfogel/polygon-clipping" target="_blank" rel="noopener">polygon-clipping</a>
+      0.15.7 (also MIT); the full notices travel inside the application file's own header.</p>
     <p><b>No module in the application's own source makes a network request of any kind.</b>
       three.js itself bundles generic loader code capable of one, for features this application
       never calls.</p>
@@ -354,33 +351,32 @@
     <p>Cite it as software. Keeping the copyright notice in the file satisfies the licence; a
       citation is the scholarly act on top of that.</p>
     <p class="ms-ref">Al-Obaidi, K. M. (2026). <i>Massing Studio: A browser-based plan drawing and
-      extrusion tool</i> (Version 1.0.0) [Computer software]. Zenodo.
-      <a href="https://doi.org/10.5281/zenodo.22814302" target="_blank" rel="noopener">https://doi.org/10.5281/zenodo.22814302</a></p>
+      extrusion tool</i> (Version 1.1.0) [Computer software]. Zenodo.
+      <a href="https://doi.org/10.5281/zenodo.22814301" target="_blank" rel="noopener">https://doi.org/10.5281/zenodo.22814301</a></p>
 <pre>@software{alobaidi2026massingstudio,
   author    = {Al-Obaidi, Karam M.},
   title     = {Massing Studio: A browser-based plan drawing
                and extrusion tool},
   year      = {2026},
-  version   = {1.0.0},
+  version   = {1.1.0},
   publisher = {Zenodo},
-  doi       = {10.5281/zenodo.22814302},
+  doi       = {10.5281/zenodo.22814301},
   url       = {https://karam.me.uk/applications/massing-studio/},
   note      = {Code MIT licensed; accompanying material CC BY 4.0}
 }</pre>
-    <p>That DOI names this release. To cite the software in general rather than version 1.0.0, use
-      the concept DOI
-      <a href="https://doi.org/10.5281/zenodo.22814301" target="_blank" rel="noopener">10.5281/zenodo.22814301</a>,
-      which always resolves to the newest version.</p>
-    <p><b>Report the grid size and whether Snap was on</b> alongside any quoted figure, and say
-      whether the shape in question was <b>moved or scaled after it was drawn</b> &mdash; that
-      changes whether the coordinates are still multiples of the grid at all.</p>
+    <p>That is the concept DOI, which always resolves to the newest version. Once version 1.1.0 has
+      its own version DOI from Zenodo, cite that to name this release exactly. Version 1.0.0
+      remains citable as
+      <a href="https://doi.org/10.5281/zenodo.22814302" target="_blank" rel="noopener">10.5281/zenodo.22814302</a>.</p>
+    <p><b>Report the grid size and whether Snap was on</b> alongside any quoted figure, and quote
+      an area as a <b>footprint area</b> unless each storey was drawn as its own shape.</p>
 
     <h3>References</h3>
-    <p><b>What the code itself names, and nothing else</b> &mdash; which here is one entry. The
-      source's own vendored licence file names three.js and its four addons; nothing else in the
-      application cites an external work. The DXF entity types are the format's own vocabulary, and
-      the shoelace formula is named in a comment but attributed to no one, so neither has an entry
-      below.</p>
+    <p><b>What the code itself names, and nothing else.</b> The source's vendored licence files
+      name three.js with its four addons, and polygon-clipping; nothing else in the application
+      cites an external work. The DXF entity types are the format's own vocabulary, and the
+      shoelace formula and the centripetal Catmull-Rom curve are named in comments but attributed
+      to no one, so none of these has an entry below.</p>
 
     <h4>Named in the application</h4>
     <p class="ms-ref">Three.js authors. (2023). <i>three.js</i> (r160) [Computer software]. MIT
@@ -388,6 +384,10 @@
       <span style="color:var(--ms-ink3)">&mdash; the 3D engine the application is built on, with
       its OrbitControls, OBJExporter, OBJLoader and STLExporter addons from the same release, all
       named in the source's own vendored licence file.</span></p>
+    <p class="ms-ref">Fogel, M. (2023). <i>polygon-clipping</i> (0.15.7) [Computer software]. MIT
+      licensed.
+      <span style="color:var(--ms-ink3)">&mdash; the 2D clipping behind Intersect, Union and
+      Subtract, named in the source's vendored licence file.</span></p>
 
     <h4>Further reading &mdash; not named by the code</h4>
     <p class="ms-ref">Ching, F. D. K. &amp; Shapiro, I. M. (2021). <i>Green building illustrated</i>
