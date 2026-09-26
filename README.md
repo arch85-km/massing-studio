@@ -2,7 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22814301.svg)](https://doi.org/10.5281/zenodo.22814301)
 
-**v1.0.0 · 2026-09-17**
+**v1.1.0 · 2026-09-26**
 
 A lightweight, browser-based tool for **sketching 2D plans and extruding
 them into 3D massing models** — built for architecture students who need
@@ -94,7 +94,12 @@ SketchUp, or Revit once the basic plan→volume workflow clicks.
 - **Mobile-friendly**: responsive two-row toolbar, touch pinch-zoom/pan
   in the 2D plan, touch drag for all the same handles.
 - **Save / Open** a project as JSON (keeps every shape, image, model,
-  and imported asset).
+  and imported asset), or **Save as .obj**: an ordinary OBJ that Rhino,
+  Blender or SketchUp read as usual, with the whole project carried in
+  comment lines, so opening it here again gives back the editable model.
+  **Open** also reads an `.obj` from any other program: every straight
+  vertical extrusion comes in as an editable shape (with courtyards kept,
+  and one level per floor height); anything else becomes a 3D reference.
 - **Export**: `.obj` and binary `.stl` for every extruded solid (closed
   shapes with a height above 0), a **high-resolution PNG or JPEG** of
   the 3D view (up to 4× the view, or a custom width — on a transparent,
@@ -157,6 +162,7 @@ massing-studio/
 ├── css/style.css           Dark theme, responsive (desktop + mobile) layout
 ├── js/
 │   ├── state.js             Data model: shapes, images, models, undo/redo history
+│   ├── objio.js             Save as .obj, and rebuilding editable shapes from an .obj
 │   ├── geometry.js          Snapping, hit-testing, curves, areas, polygon math
 │   ├── booleans.js          Intersect / Union / Subtract between volumes
 │   ├── canvas2d.js          2D plan view: drawing & measuring tools, selection, pan/zoom

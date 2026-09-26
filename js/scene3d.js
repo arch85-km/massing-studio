@@ -889,6 +889,7 @@ export class Scene3D {
 
     const shape = this.store.state.shapes.find((s) => s.id === hit.object.userData.shapeId);
     if (!shape || !shape.closed) return;
+    if (this.store.state.layers.find((l) => l.id === shape.layerId)?.locked) return; // a locked level can't be edited
 
     const ny = hit.face.normal.y;
     if (ny >= 0.5) { this._startHeightDrag(shape, hit); return; }

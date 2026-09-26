@@ -124,7 +124,13 @@ export class Store {
       (m, l) => Math.max(m, l.elevation + l.defaultHeight), 0
     );
     const color = LAYER_PALETTE[this.state.layers.length % LAYER_PALETTE.length];
-    const layer = defaultLayer(`Floor ${this.state.layers.length + 1}`, maxTop, 3, color);
+    // The Ground Floor is floor 0, so the first level added above it is
+    // "Floor 1" (UK/European numbering). Skip any number already in use,
+    // e.g. after a level was deleted or renamed.
+    const names = new Set(this.state.layers.map((l) => l.name));
+    let n = this.state.layers.length;
+    while (names.has(`Floor ${n}`)) n++;
+    const layer = defaultLayer(`Floor ${n}`, maxTop, 3, color);
     this.state.layers.push(layer);
     this.state.activeLayerId = layer.id;
     this.notify();

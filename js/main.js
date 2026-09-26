@@ -1,7 +1,7 @@
 // main.js — application bootstrap: wires the toolbar, status bar, and
 // properties panel to the Store, Plan2D and Scene3D modules.
 
-import { Store, nextId } from './state.js';
+import { Store, nextId, levelGradient } from './state.js';
 import { Plan2D } from './canvas2d.js';
 import { Scene3D } from './scene3d.js';
 import {
@@ -9,6 +9,7 @@ import {
   polygonArea, ringLength, formatArea, formatLength,
 } from './geometry.js';
 import { booleanShapes } from './booleans.js';
+import { buildProjectOBJ, extractProjectJSON, reconstructFromOBJ } from './objio.js';
 
 const store = new Store();
 
@@ -84,14 +85,123 @@ gridSizeInput.onchange = () => {
 // Reference images and imported models live outside the undo-tracked state
 // (see state.js), so a save/load round-trip has to carry them alongside it
 // explicitly under two reserved keys.
-document.getElementById('btn-save').onclick = () => {
-  const data = {
+// ---------------- dropdown placement on phones ----------------
+// On a phone the second toolbar row scrolls sideways, and a scrolling
+// element clips anything absolutely positioned inside it — so a menu opened
+// from that row (Save, Import, View) would be cut off at the row's edge.
+// There, an open menu is pinned to the viewport just under its button
+// instead, and closed again if the row scrolls away underneath it.
+const phoneLayout = window.matchMedia('(max-width: 760px)');
+function placeMenu(toggle, menu) {
+  const pinned = phoneLayout.matches && !!toggle.closest('.toolbar-row-secondary');
+  menu.classList.toggle('pinned', pinned);
+  if (!pinned) { menu.style.left = ''; menu.style.top = ''; return; }
+  const r = toggle.getBoundingClientRect();
+  menu.style.top = `${r.bottom + 6}px`;
+  menu.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8))}px`;
+}
+function closeMenus() {
+  document.querySelectorAll('.dropdown-menu.open').forEach((m) => m.classList.remove('open'));
+  document.querySelectorAll('[aria-haspopup="true"]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
+}
+document.querySelector('.toolbar-row-secondary').addEventListener('scroll', closeMenus, { passive: true });
+window.addEventListener('resize', () => document.querySelectorAll('.dropdown-menu.pinned.open').forEach((m) => m.classList.remove('open')));
+
+function projectJSON(indent) {
+  return JSON.stringify({
     ...store.state,
     __imageAssets: Object.fromEntries(store.imageAssets),
     __modelAssets: Object.fromEntries(store.modelAssets),
-  };
-  downloadText(JSON.stringify(data, null, 2), 'plan.cadproj.json', 'application/json');
+  }, null, indent);
+}
+
+function applyProject(data) {
+  const { __imageAssets, __modelAssets, ...state } = data;
+  store.loadProject(state);
+  store.imageAssets = new Map(Object.entries(__imageAssets || {}));
+  store.modelAssets = new Map(Object.entries(__modelAssets || {}));
+  store.notify();
+  plan2d.zoomToFit();
+  scene3d.frameAll();
+}
+
+const saveToggle = document.getElementById('btn-save-toggle');
+const saveMenu = document.getElementById('save-menu');
+saveToggle.onclick = (e) => {
+  e.stopPropagation();
+  const isOpen = saveMenu.classList.toggle('open');
+  saveToggle.setAttribute('aria-expanded', String(isOpen));
+  if (isOpen) placeMenu(saveToggle, saveMenu);
 };
+saveMenu.addEventListener('click', (e) => e.stopPropagation());
+
+document.getElementById('btn-save').onclick = () => {
+  saveMenu.classList.remove('open');
+  downloadText(projectJSON(2), 'plan.cadproj.json', 'application/json');
+};
+
+// Ordinary OBJ geometry for other programs, with the whole project riding
+// along in comment lines so this app can reopen it fully editable (objio.js).
+document.getElementById('btn-save-obj').onclick = () => {
+  saveMenu.classList.remove('open');
+  downloadText(buildProjectOBJ(scene3d.exportOBJ(), projectJSON()), 'model.obj', 'text/plain');
+};
+
+// An .obj from another program: straight vertical extrusions become editable
+// shapes, one level per distinct base elevation; everything else comes in as
+// a static reference model. Replaces the current project, like opening a .json.
+function openForeignOBJ(text, fileName) {
+  const { prisms, rest } = reconstructFromOBJ(text);
+  if (!prisms.length && !rest) {
+    alert('No geometry found in that .obj file.');
+    return;
+  }
+  const round = (v) => Math.round(v * 10000) / 10000;
+  const elevations = [...new Set(prisms.map((p) => round(p.bottom)))].sort((a, b) => a - b);
+  if (!elevations.length) elevations.push(0);
+  const groundIndex = Math.max(0, elevations.findIndex((z) => z >= 0));
+  const colours = levelGradient(elevations.length);
+  const layers = elevations.map((z, i) => {
+    const next = elevations[i + 1];
+    const heights = prisms.filter((p) => round(p.bottom) === z).map((p) => p.height);
+    return {
+      id: nextId('layer'),
+      name: i < groundIndex ? `Basement ${groundIndex - i}` : i === groundIndex ? 'Ground Floor' : `Floor ${i - groundIndex}`,
+      elevation: z,
+      defaultHeight: round(next !== undefined ? next - z : Math.max(...heights, 3)),
+      visible: true,
+      locked: false,
+      color: colours[i],
+    };
+  });
+  const shapes = prisms.map((p) => {
+    const layer = layers[elevations.indexOf(round(p.bottom))];
+    const shape = {
+      id: nextId('shape'), type: 'polygon', layerId: layer.id, closed: true,
+      points: p.points, height: round(p.height), base: 0, color: layer.color,
+    };
+    if (p.holes.length) shape.holes = p.holes;
+    return shape;
+  });
+  const modelAssets = {};
+  const importedModels = [];
+  if (rest) {
+    const id = nextId('model');
+    modelAssets[id] = rest;
+    importedModels.push({ id, name: `${fileName} (not extrusions)`, x: 0, y: 0, z: 0, scale: 1 });
+  }
+  applyProject({
+    layers, activeLayerId: layers[groundIndex].id, shapes, selection: [],
+    images: [], importedModels, dimensions: [], areas: [], __modelAssets: modelAssets,
+  });
+  if (rest && prisms.length) {
+    alert(`${prisms.length} straight extrusion${prisms.length === 1 ? '' : 's'} opened as editable shapes. ` +
+      'The rest of the file (curved, sloped or irregular geometry) came in as a 3D reference model.');
+  } else if (rest) {
+    alert('Nothing in that file is a straight vertical extrusion, so it opened as a 3D reference model only.');
+  }
+}
+
 const loadInput = document.getElementById('load-input');
 document.getElementById('btn-load').onclick = () => loadInput.click();
 loadInput.onchange = () => {
@@ -100,15 +210,16 @@ loadInput.onchange = () => {
   const reader = new FileReader();
   reader.onload = () => {
     try {
-      const { __imageAssets, __modelAssets, ...state } = JSON.parse(reader.result);
-      store.loadProject(state);
-      store.imageAssets = new Map(Object.entries(__imageAssets || {}));
-      store.modelAssets = new Map(Object.entries(__modelAssets || {}));
-      store.notify();
-      plan2d.zoomToFit();
-      scene3d.frameAll();
+      const text = reader.result;
+      if (/\.obj$/i.test(file.name)) {
+        const embedded = extractProjectJSON(text);
+        if (embedded) applyProject(JSON.parse(embedded));
+        else openForeignOBJ(text, file.name);
+      } else {
+        applyProject(JSON.parse(text));
+      }
     } catch (err) {
-      alert('Could not read that project file: ' + err.message);
+      alert('Could not open that file: ' + err.message);
     }
   };
   reader.readAsText(file);
@@ -132,6 +243,7 @@ importToggle.onclick = (e) => {
   e.stopPropagation();
   const isOpen = importMenu.classList.toggle('open');
   importToggle.setAttribute('aria-expanded', String(isOpen));
+  if (isOpen) placeMenu(importToggle, importMenu);
 };
 importMenu.addEventListener('click', (e) => e.stopPropagation());
 
@@ -152,6 +264,7 @@ displayToggle.onclick = (e) => {
   e.stopPropagation();
   const isOpen = displayMenu.classList.toggle('open');
   displayToggle.setAttribute('aria-expanded', String(isOpen));
+  if (isOpen) placeMenu(displayToggle, displayMenu);
 };
 displayMenu.addEventListener('click', (e) => e.stopPropagation());
 const displayChecks = displayMenu.querySelectorAll('[data-display]');
@@ -359,6 +472,7 @@ window.addEventListener('click', () => {
   importToggle.setAttribute('aria-expanded', 'false');
   clipboardToggle.setAttribute('aria-expanded', 'false');
   displayToggle.setAttribute('aria-expanded', 'false');
+  saveToggle.setAttribute('aria-expanded', 'false');
 });
 
 document.getElementById('btn-export-obj').onclick = () => {
@@ -919,7 +1033,10 @@ function renderProps() {
 
   if (store.state.selectedAnnotation) { renderAnnotationProps(store.state.selectedAnnotation); return; }
 
-  const selected = store.state.shapes.filter((s) => store.state.selection.includes(s.id));
+  // In the order they were selected — Subtract takes the second one away from the first.
+  const selected = store.state.selection
+    .map((id) => store.state.shapes.find((s) => s.id === id))
+    .filter(Boolean);
   propsPanel.innerHTML = '';
   if (selected.length > 1) { renderMultiProps(selected); return; }
   const shape = selected[0];
