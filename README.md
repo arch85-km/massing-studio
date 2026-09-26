@@ -34,8 +34,8 @@ early-stage massing studies:
 | Orbit / pan / zoom camera | Both | Standard CAD navigation: left-drag to orbit, right-drag to pan, scroll to zoom, in the 3D view. |
 
 What's intentionally **left out**, because it isn't needed for a first
-extrusion exercise: parametric constraints, boolean solid operations,
-detailed BIM metadata (walls/doors/windows as distinct families), and
+extrusion exercise: parametric constraints, general (free-form) solid
+modelling, detailed BIM metadata (walls/doors/windows as distinct families), and
 multi-user collaboration. Those are reasons to graduate to Rhino,
 SketchUp, or Revit once the basic plan→volume workflow clicks.
 
@@ -43,13 +43,38 @@ SketchUp, or Revit once the basic plan→volume workflow clicks.
 
 ## Features
 
-- **Draw tools**: line (reference only), rectangle, circle, and
-  freeform polygon (click each vertex; close with Enter, double-click,
-  or a click near the start point).
+- **Draw tools**: line (reference only), rectangle, circle, freeform
+  polygon, and **curve** — a smooth spline through the points you click
+  (close either with Enter, double-click, or a click near the start
+  point; a curve can also be left open as a reference line).
 - **Extrude**: give any closed shape a height in the Properties panel,
   or drag it directly with the **Push/Pull** tool in the 3D view — the
   top face changes height; any side wall moves just that wall.
-- **Select / Move / Scale / Delete** existing shapes from the plan view.
+- **Select / Move / Scale / Delete** existing shapes from the plan view —
+  Shift+click or drag a box to select several; drag the round handles to
+  edit a polygon's or curve's points; scale from the square handles
+  (about the opposite corner; hold Shift for uniform). Volumes can also
+  be selected and dragged in the 3D view.
+- **Levels (floors)**: a Levels panel to add, rename, hide, lock and
+  recolour floors, each with its own elevation and default height. New
+  shapes go on the active level; other levels show ghosted in the plan.
+  **Stack copy on top** puts a copy of a volume directly above it,
+  **Alt+drag** in 3D lifts a volume (snapping onto other volumes' tops),
+  **Colour as gradient** colours the floors from orange at the ground to
+  pale straw at the top, and every shape has a base offset.
+- **Elevation views**: Front / Back / Left / Right orthographic
+  elevations in the 3D view (plus Top, Iso and a Persp/Ortho toggle),
+  with dashed level lines labelled with each level's elevation.
+- **Measure**: a **Dimension** tool (click two points, then click to
+  place the dimension line) in the plan, or directly on the 3D model,
+  where it snaps to volume corners — so heights can be dimensioned in
+  an elevation. An **Area** tool measures any area you click out
+  (area + perimeter). Properties show each shape's width × depth,
+  footprint area, perimeter and volume; the Levels panel shows the area
+  per floor and the status bar the total gross floor area.
+- **Booleans**: select two volumes and **Intersect**, **Union** or
+  **Subtract** them (footprints clipped in plan, heights overlapped in
+  section — results can have courtyards/holes). Undo restores them.
 - **Copy / Cut / Paste** shapes, reference images, and imported 3D
   models — `Ctrl+C`/`Ctrl+X`/`Ctrl+V`, or the toolbar menu next to
   Undo/Redo (works on touch devices too).
@@ -57,18 +82,24 @@ SketchUp, or Revit once the basic plan→volume workflow clicks.
   as fully editable shapes, or an image as a traceable underlay in the
   2D plan — each with its own drag-to-move / drag-to-resize handles.
 - **Snapping**: grid snap (adjustable spacing) and endpoint snap to
-  existing geometry.
+  existing geometry — also while moving and scaling shapes in the plan,
+  and when pushing/pulling or moving volumes in 3D (heights snap to
+  other volumes' tops and to level elevations).
 - **Split-screen** 2D plan + 3D model, or either view full-screen.
 - **Camera presets**: Top, Front, Isometric, and Frame-all.
-- **Color per shape**, from a swatch palette or a custom hex pick.
+- **Colour and transparency per shape**: a 24-colour palette, hex entry
+  or any colour from the system picker, and an opacity slider. The View
+  menu adds edge lines, an X-ray (see-through) mode and area labels.
 - **Undo / redo**, full history.
 - **Mobile-friendly**: responsive two-row toolbar, touch pinch-zoom/pan
   in the 2D plan, touch drag for all the same handles.
 - **Save / Open** a project as JSON (keeps every shape, image, model,
   and imported asset).
 - **Export**: `.obj` and binary `.stl` for every extruded solid (closed
-  shapes with a height above 0), `.png` of the current 3D view, and
-  `.dxf` of the 2D plan. Open lines and un-extruded (height 0)
+  shapes with a height above 0), a **high-resolution PNG or JPEG** of
+  the 3D view (up to 4× the view, or a custom width — on a transparent,
+  white or dark background, optionally in a translucent massing style
+  with edges), and `.dxf` of the 2D plan. Open lines and un-extruded (height 0)
   footprints are excluded from the solid exports.
 
 ## Using it
@@ -86,7 +117,7 @@ SketchUp, or Revit once the basic plan→volume workflow clicks.
 4. Import a `.dxf`, `.obj`, or image if you're tracing over existing
    drawings or reference geometry.
 5. When the model looks right, use **Export** to save `.obj`, `.stl`,
-   `.png`, or `.dxf`.
+   a PNG/JPEG image, or `.dxf`.
 
 ### Keyboard shortcuts
 
@@ -97,10 +128,16 @@ SketchUp, or Revit once the basic plan→volume workflow clicks.
 | `R` | Rectangle |
 | `C` | Circle |
 | `P` | Polygon |
+| `S` | Curve (spline) |
 | `E` | Push/Pull |
-| `Enter` / double-click | Close the polygon being drawn |
-| `Esc` | Cancel the shape being drawn |
-| `Delete` / `Backspace` | Delete the selected shape, image, or model |
+| `D` | Dimension |
+| `A` | Area |
+| `O` | Toggle perspective / orthographic (3D) |
+| `Enter` / double-click | Close the polygon / curve / area being drawn; place a dimension with no offset |
+| `Esc` | Cancel the shape or measurement being drawn |
+| `Delete` / `Backspace` | Delete the selected shape(s), image, model, or measurement |
+| Shift + click | Add to / remove from the selection (plan and 3D) |
+| Alt + drag (3D) | Lift a volume vertically |
 | `Ctrl/Cmd + C` | Copy the current selection |
 | `Ctrl/Cmd + X` | Cut the current selection |
 | `Ctrl/Cmd + V` | Paste |
@@ -120,12 +157,14 @@ massing-studio/
 ├── css/style.css           Dark theme, responsive (desktop + mobile) layout
 ├── js/
 │   ├── state.js             Data model: shapes, images, models, undo/redo history
-│   ├── geometry.js          Snapping, hit-testing, polygon math
-│   ├── canvas2d.js          2D plan view: drawing tools, selection, pan/zoom
-│   ├── scene3d.js           Three.js viewport: extrusion, push/pull, exports
-│   └── main.js              Wires everything to the toolbar & status bar
+│   ├── geometry.js          Snapping, hit-testing, curves, areas, polygon math
+│   ├── booleans.js          Intersect / Union / Subtract between volumes
+│   ├── canvas2d.js          2D plan view: drawing & measuring tools, selection, pan/zoom
+│   ├── scene3d.js           Three.js viewport: extrusion, push/pull, elevations, exports
+│   └── main.js              Wires everything to the toolbar, panels & status bar
 ├── vendor/three/           Vendored Three.js r160 (module build) + OrbitControls,
 │                             OBJExporter, OBJLoader, STLExporter — no CDN required
+├── vendor/polygon-clipping/  Vendored polygon-clipping (MIT) for the booleans
 ├── scripts/build-standalone.sh   Bundles the whole app into one self-contained HTML file
 └── dist/Massing-Studio.html      The built single-file bundle
 ```
@@ -134,7 +173,12 @@ massing-studio/
 
 - Plain ES modules, no bundler or framework — open the file and it runs.
 - Three.js is vendored locally under `vendor/three/` (MIT licensed) so the
-  app works fully offline and isn't dependent on a CDN being reachable.
+  app works fully offline and isn't dependent on a CDN being reachable;
+  so is polygon-clipping (`vendor/polygon-clipping/`, MIT), which does the
+  2D footprint clipping behind the boolean operations.
+- Every volume is a vertical prism (a plan footprint between a bottom
+  and a top elevation), so booleans are exact: footprints are clipped in
+  plan and the vertical extents intersected in section.
 - The data model (`state.js`) is UI-agnostic: the 2D canvas, 3D viewport,
   and side panels all just subscribe to state changes and re-render, which
   keeps "draw a shape" and "extrude a shape" as two independent, testable
