@@ -59,3 +59,11 @@ following, which carry their own licence and remains under it:
     Copyright (c) 2010-2023 three.js authors
     MIT License. Full text: vendor/three/three.LICENSE.
     https://threejs.org
+
+  polygon-clipping (v0.15.7), bundling splaytree (v3.1.2) and the tslib
+  __generator helper — vendor/polygon-clipping/
+    Copyright (c) 2018 Mike Fogel; (c) 2016 Alexander Milevski
+    MIT License. Full text: vendor/polygon-clipping/polygon-clipping.LICENSE.
+    The embedded tslib helper is (c) Microsoft Corporation, under the
+    licence header kept verbatim inside the file.
+    https://github.com/mfogel/polygon-clipping
