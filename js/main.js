@@ -4,6 +4,11 @@
 import { Store, nextId } from './state.js';
 import { Plan2D } from './canvas2d.js';
 import { Scene3D } from './scene3d.js';
+import {
+  shapePoints, boundsOf, shapeArea, shapePerimeter, shapeBaseZ, mapShapeCoords,
+  polygonArea, ringLength, formatArea, formatLength,
+} from './geometry.js';
+import { booleanShapes } from './booleans.js';
 
 const store = new Store();
 
@@ -13,6 +18,10 @@ const plan2d = new Plan2D(document.getElementById('canvas2d'), store, {
 const scene3d = new Scene3D(document.getElementById('canvas3d'), store, {
   onStatus: (s) => updateStatus(s),
 });
+
+// A handle for the browser console (and automated tests) — e.g.
+// `massingStudio.store.state.shapes` to inspect the model.
+window.massingStudio = { store, plan2d, scene3d };
 
 // ---------------- toolbar: tools ----------------
 const toolButtons = document.querySelectorAll('[data-tool]');
@@ -40,10 +49,18 @@ store.onChange(applyView);
 applyView();
 
 // ---------------- camera presets ----------------
-document.getElementById('cam-top').onclick = () => scene3d.setView('top');
-document.getElementById('cam-front').onclick = () => scene3d.setView('front');
-document.getElementById('cam-iso').onclick = () => scene3d.setView('iso');
+for (const preset of ['top', 'front', 'back', 'left', 'right', 'iso']) {
+  document.getElementById(`cam-${preset}`).onclick = () => { scene3d.setView(preset); refreshProjButton(); };
+}
 document.getElementById('cam-fit').onclick = () => { scene3d.frameAll(); plan2d.zoomToFit(); };
+const projButton = document.getElementById('cam-proj');
+function refreshProjButton() {
+  projButton.textContent = scene3d.isOrtho ? 'Ortho' : 'Persp';
+  projButton.classList.toggle('active', scene3d.isOrtho);
+}
+function toggleProjection() { scene3d.setProjection(!scene3d.isOrtho); refreshProjButton(); }
+projButton.onclick = toggleProjection;
+refreshProjButton();
 
 // ---------------- undo / redo / new ----------------
 document.getElementById('btn-undo').onclick = () => store.undo();
@@ -127,6 +144,25 @@ clipboardToggle.onclick = (e) => {
   clipboardToggle.setAttribute('aria-expanded', String(isOpen));
 };
 clipboardMenu.addEventListener('click', (e) => e.stopPropagation());
+
+// ---------------- display ("View") dropdown ----------------
+const displayToggle = document.getElementById('btn-display-toggle');
+const displayMenu = document.getElementById('display-menu');
+displayToggle.onclick = (e) => {
+  e.stopPropagation();
+  const isOpen = displayMenu.classList.toggle('open');
+  displayToggle.setAttribute('aria-expanded', String(isOpen));
+};
+displayMenu.addEventListener('click', (e) => e.stopPropagation());
+const displayChecks = displayMenu.querySelectorAll('[data-display]');
+displayChecks.forEach((cb) => {
+  cb.onchange = () => store.setDisplay({ [cb.dataset.display]: cb.checked });
+});
+function refreshDisplayChecks() {
+  displayChecks.forEach((cb) => { cb.checked = !!store.state.display[cb.dataset.display]; });
+}
+store.onChange(refreshDisplayChecks);
+refreshDisplayChecks();
 
 const importObjInput = document.getElementById('import-obj-input');
 const importDxfInput = document.getElementById('import-dxf-input');
@@ -322,6 +358,7 @@ window.addEventListener('click', () => {
   exportToggle.setAttribute('aria-expanded', 'false');
   importToggle.setAttribute('aria-expanded', 'false');
   clipboardToggle.setAttribute('aria-expanded', 'false');
+  displayToggle.setAttribute('aria-expanded', 'false');
 });
 
 document.getElementById('btn-export-obj').onclick = () => {
@@ -333,10 +370,83 @@ document.getElementById('btn-export-obj').onclick = () => {
   downloadText(obj, 'model.obj', 'text/plain');
 };
 
-document.getElementById('btn-export-png').onclick = () => {
-  const dataUrl = scene3d.exportPNG();
-  downloadDataUrl(dataUrl, 'model.png');
+// ---------------- image export dialog ----------------
+// The 3D view rendered at up to several times its on-screen size, on a
+// transparent, white or dark background — see Scene3D.exportImage.
+const exportDialog = document.getElementById('export-dialog');
+const expFormat = document.getElementById('exp-format');
+const expBg = document.getElementById('exp-bg');
+const expSize = document.getElementById('exp-size');
+const expWidth = document.getElementById('exp-width');
+const expCustomRow = document.getElementById('exp-custom-row');
+const expStyle = document.getElementById('exp-style');
+const expHideHelpers = document.getElementById('exp-hide-helpers');
+const expShadow = document.getElementById('exp-shadow');
+const expAnnotations = document.getElementById('exp-annotations');
+const expHint = document.getElementById('exp-size-hint');
+
+// The 3D pane's on-screen size, or a sensible 16:10 stand-in when it's hidden (2D-only view).
+function exportBaseSize() {
+  const r = document.getElementById('canvas3d').getBoundingClientRect();
+  return r.width > 0 && r.height > 0 ? { w: r.width, h: r.height } : { w: 1600, h: 1000 };
+}
+
+function exportTargetSize() {
+  const base = exportBaseSize();
+  let w, h;
+  if (expSize.value === 'custom') {
+    w = Math.max(200, parseInt(expWidth.value, 10) || 3000);
+    h = Math.round((w * base.h) / base.w);
+  } else {
+    const k = parseInt(expSize.value, 10);
+    w = Math.round(base.w * k);
+    h = Math.round(base.h * k);
+  }
+  const max = scene3d.maxExportSize();
+  const f = Math.min(1, max / Math.max(w, h));
+  return { w: Math.floor(w * f), h: Math.floor(h * f), capped: f < 1 };
+}
+
+function refreshExportDialog() {
+  expCustomRow.hidden = expSize.value !== 'custom';
+  const transparentOpt = expBg.querySelector('option[value="transparent"]');
+  transparentOpt.disabled = expFormat.value === 'jpeg';
+  if (expFormat.value === 'jpeg' && expBg.value === 'transparent') expBg.value = 'white';
+  const { w, h, capped } = exportTargetSize();
+  expHint.textContent = `${w} × ${h} px${capped ? ' (limited by this device\'s graphics card)' : ''}`;
+}
+[expFormat, expBg, expSize, expWidth].forEach((el) => el.addEventListener('input', refreshExportDialog));
+
+document.getElementById('btn-export-image').onclick = () => {
+  exportMenu.classList.remove('open');
+  if (store.state.view === '2d') { store.setView('split'); applyView(); }
+  refreshExportDialog();
+  exportDialog.showModal();
 };
+document.getElementById('exp-cancel').onclick = () => exportDialog.close();
+document.getElementById('export-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const { w, h } = exportTargetSize();
+  const format = expFormat.value;
+  try {
+    const { dataUrl } = scene3d.exportImage({
+      format,
+      background: expBg.value,
+      width: w,
+      height: h,
+      translucent: expStyle.value === 'translucent',
+      hideHelpers: expHideHelpers.checked,
+      shadow: expShadow.checked,
+      annotations: expAnnotations.checked,
+    });
+    // A Blob rather than the data URL itself: a print-size image makes a
+    // data URL tens of MB long, which some browsers refuse to download.
+    downloadBlob(dataUrlToBlob(dataUrl), `model-${w}x${h}.${format === 'jpeg' ? 'jpg' : 'png'}`);
+    exportDialog.close();
+  } catch (err) {
+    alert('Could not export the image: ' + err.message);
+  }
+});
 
 document.getElementById('btn-export-dxf').onclick = () => {
   if (!store.state.shapes.length) {
@@ -379,30 +489,37 @@ function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
-function downloadDataUrl(dataUrl, filename) {
-  const a = document.createElement('a');
-  a.href = dataUrl;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+function dataUrlToBlob(dataUrl) {
+  const [head, data] = dataUrl.split(',');
+  const mime = head.match(/:(.*?);/)[1];
+  const bin = atob(data);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
 }
 
 // ---------------- properties panel ----------------
-const SWATCH_COLORS = ['#4fa3ff', '#ff9d4f', '#57d38c', '#c98bff', '#ff6b6b', '#f4d35e', '#93a1b3', '#ffffff'];
+// Three rows of eight: cool accents, the warm oranges → straws of a
+// massing diagram (as in "Colour levels as gradient"), and neutrals.
+const SWATCH_COLORS = [
+  '#4fa3ff', '#2f6fd6', '#57d38c', '#2e9e6a', '#c98bff', '#8a5cf6', '#ff6b6b', '#e0457b',
+  '#c8612f', '#e8854a', '#f2a65a', '#f6c46a', '#f4d35e', '#f5da86', '#f0e6a8', '#ece9c4',
+  '#ffffff', '#e6e2da', '#c9c3b8', '#a8b3c0', '#93a1b3', '#6b7686', '#454d59', '#23282f',
+];
 
 // A CSS-positioned dropdown instead of a native <input type="color"> —
 // the native color picker's popup placement is decided by the browser and
 // isn't something CSS/JS can reliably control, so it can open upward and
 // clip against the top of the window. This one is anchored to the swatch
 // button with `.dropdown-menu`'s own positioning, so it always renders in
-// the same predictable spot below-and-left of the button.
-function buildColorRow(shape) {
+// the same predictable spot below-and-left of the button. The native picker
+// is still offered inside it, as "More…", for any colour off the palette.
+function buildColorRow(current, onPick, labelText = 'Color') {
   const row = document.createElement('div');
   row.className = 'props-row';
 
   const label = document.createElement('span');
-  label.textContent = 'Color';
+  label.textContent = labelText;
   row.appendChild(label);
 
   const dropdown = document.createElement('div');
@@ -411,8 +528,8 @@ function buildColorRow(shape) {
   const swatchBtn = document.createElement('button');
   swatchBtn.type = 'button';
   swatchBtn.className = 'color-swatch-btn';
-  swatchBtn.style.background = shape.color;
-  swatchBtn.title = shape.color;
+  swatchBtn.style.background = current || 'transparent';
+  swatchBtn.title = current || 'mixed';
   swatchBtn.setAttribute('aria-haspopup', 'true');
   swatchBtn.setAttribute('aria-expanded', 'false');
 
@@ -425,11 +542,11 @@ function buildColorRow(shape) {
   SWATCH_COLORS.forEach((c) => {
     const opt = document.createElement('button');
     opt.type = 'button';
-    opt.className = 'swatch-option' + (c.toLowerCase() === shape.color.toLowerCase() ? ' active' : '');
+    opt.className = 'swatch-option' + (current && c.toLowerCase() === current.toLowerCase() ? ' active' : '');
     opt.style.background = c;
     opt.title = c;
     opt.onclick = () => {
-      store.updateShape(shape.id, { color: c });
+      onPick(c);
       menu.classList.remove('open');
     };
     grid.appendChild(opt);
@@ -443,7 +560,7 @@ function buildColorRow(shape) {
   const hexInput = document.createElement('input');
   hexInput.type = 'text';
   hexInput.className = 'hex-input';
-  hexInput.value = shape.color;
+  hexInput.value = current || '';
   hexInput.maxLength = 7;
   hexInput.placeholder = '#rrggbb';
   hexInput.onclick = (e) => e.stopPropagation();
@@ -451,13 +568,19 @@ function buildColorRow(shape) {
     let v = hexInput.value.trim();
     if (v && !v.startsWith('#')) v = '#' + v;
     if (/^#[0-9a-fA-F]{6}$/.test(v)) {
-      store.updateShape(shape.id, { color: v });
+      onPick(v.toLowerCase());
     } else {
-      hexInput.value = shape.color;
+      hexInput.value = current || '';
     }
   };
+  const picker = document.createElement('input');
+  picker.type = 'color';
+  picker.title = 'More colours…';
+  picker.value = /^#[0-9a-fA-F]{6}$/.test(current || '') ? current : '#ffffff';
+  picker.onchange = () => onPick(picker.value);
   hexRow.appendChild(hexLabel);
   hexRow.appendChild(hexInput);
+  hexRow.appendChild(picker);
   menu.appendChild(hexRow);
 
   swatchBtn.onclick = (e) => {
@@ -471,6 +594,196 @@ function buildColorRow(shape) {
   dropdown.appendChild(menu);
   row.appendChild(dropdown);
   return row;
+}
+
+// Opacity as a 10–100 % slider; history is taken once per drag (on change),
+// with live preview while dragging.
+function buildOpacityRow(current, onPreview, onCommit) {
+  const row = document.createElement('label');
+  row.className = 'props-row';
+  const label = document.createElement('span');
+  label.textContent = 'Opacity';
+  const wrap = document.createElement('span');
+  wrap.className = 'range-wrap';
+  const range = document.createElement('input');
+  range.type = 'range';
+  range.min = '10';
+  range.max = '100';
+  range.step = '5';
+  range.value = String(Math.round((current ?? 1) * 100));
+  const out = document.createElement('output');
+  out.textContent = `${range.value}%`;
+  range.oninput = () => { out.textContent = `${range.value}%`; onPreview(parseInt(range.value, 10) / 100); };
+  range.onchange = () => onCommit(parseInt(range.value, 10) / 100);
+  wrap.appendChild(range);
+  wrap.appendChild(out);
+  row.appendChild(label);
+  row.appendChild(wrap);
+  return row;
+}
+
+function numberRow(labelText, value, { step = '0.1', min = null, onChange }) {
+  const row = document.createElement('label');
+  row.className = 'props-row';
+  row.innerHTML = `<span>${labelText}</span>`;
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.step = step;
+  if (min !== null) input.min = String(min);
+  input.value = String(Math.round(value * 1000) / 1000);
+  input.onchange = () => onChange(parseFloat(input.value));
+  row.appendChild(input);
+  return row;
+}
+
+function infoRow(labelText, value) {
+  const row = document.createElement('div');
+  row.className = 'props-row info';
+  row.innerHTML = `<span>${labelText}</span><b></b>`;
+  row.querySelector('b').textContent = value;
+  return row;
+}
+
+function sectionTitle(text) {
+  const el = document.createElement('div');
+  el.className = 'props-section';
+  el.textContent = text;
+  return el;
+}
+
+function hint(text) {
+  const el = document.createElement('div');
+  el.className = 'panel-hint';
+  el.textContent = text;
+  return el;
+}
+
+function button(text, cls, onClick, title = '') {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = `btn ${cls}`;
+  b.textContent = text;
+  if (title) b.title = title;
+  b.onclick = onClick;
+  return b;
+}
+
+// Live opacity preview without an undo step per slider tick.
+function previewShapes(ids, patch) {
+  const set = new Set(ids);
+  for (const s of store.state.shapes) if (set.has(s.id)) Object.assign(s, patch);
+  scene3d.rebuild();
+  plan2d.render();
+}
+
+function layerOf(shape) {
+  return store.state.layers.find((l) => l.id === shape.layerId);
+}
+
+// Put a copy of the shape's footprint directly on top of it. If a level
+// starts exactly at that height, the copy goes onto that level (taking its
+// colour); otherwise it stays on this level, lifted by a base offset.
+function stackCopyOnTop(shape) {
+  const layer = layerOf(shape);
+  const top = shapeBaseZ(shape, layer) + (shape.height || 0);
+  const target = store.state.layers.find((l) => l.id !== shape.layerId && Math.abs(l.elevation - top) < 1e-3);
+  const copy = JSON.parse(JSON.stringify(shape));
+  copy.id = nextId('shape');
+  if (target) {
+    copy.layerId = target.id;
+    copy.base = 0;
+    copy.color = target.color;
+  } else {
+    copy.base = Math.round(((shape.base ?? 0) + (shape.height || 0)) * 1000) / 1000;
+  }
+  store.addShape(copy);
+  store.setSelection([copy.id]);
+}
+
+function runBoolean(op, a, b, keep) {
+  let result;
+  try {
+    result = booleanShapes(op, a, b, store.state.layers, () => nextId('shape'));
+  } catch (err) {
+    alert('That boolean operation failed: ' + err.message);
+    return;
+  }
+  if (!result.length && op === 'intersect') {
+    alert('These two volumes don\'t overlap — there is nothing to intersect.');
+    return;
+  }
+  const remove = keep ? [] : [a.id, b.id];
+  store.replaceShapes(remove, result);
+}
+
+function renderAnnotationProps(ann) {
+  propsPanel.innerHTML = '';
+  const header = document.createElement('div');
+  header.className = 'panel-header';
+  header.innerHTML = `<span>${ann.kind === 'dimension' ? 'Dimension' : 'Measured area'}</span>`;
+  propsPanel.appendChild(header);
+  const body = document.createElement('div');
+  body.className = 'props-body';
+  if (ann.kind === 'dimension') {
+    const d = store.state.dimensions.find((x) => x.id === ann.id);
+    if (!d) return;
+    const dx = d.b.x - d.a.x, dy = d.b.y - d.a.y, dz = (d.b.z ?? 0) - (d.a.z ?? 0);
+    body.appendChild(infoRow('Length', formatLength(Math.hypot(dx, dy, dz))));
+    body.appendChild(infoRow('In plan', formatLength(Math.hypot(dx, dy))));
+    if (Math.abs(dz) > 1e-6) body.appendChild(infoRow('Height difference', formatLength(Math.abs(dz))));
+  } else {
+    const a = store.state.areas.find((x) => x.id === ann.id);
+    if (!a) return;
+    body.appendChild(infoRow('Area', formatArea(Math.abs(polygonArea(a.points)))));
+    body.appendChild(infoRow('Perimeter', formatLength(ringLength(a.points, true))));
+  }
+  body.appendChild(button('Delete', 'danger full', () => store.removeAnnotation(ann.kind, ann.id)));
+  propsPanel.appendChild(body);
+}
+
+function renderMultiProps(shapes) {
+  const header = document.createElement('div');
+  header.className = 'panel-header';
+  header.innerHTML = `<span>${shapes.length} shapes selected</span>`;
+  propsPanel.appendChild(header);
+  const body = document.createElement('div');
+  body.className = 'props-body';
+  const ids = shapes.map((s) => s.id);
+
+  const closed = shapes.filter((s) => s.closed);
+  body.appendChild(infoRow('Total footprint', formatArea(closed.reduce((t, s) => t + shapeArea(s), 0))));
+  body.appendChild(infoRow('Total volume', `${closed.reduce((t, s) => t + shapeArea(s) * (s.height || 0), 0).toFixed(2)} m³`));
+
+  const colours = new Set(shapes.map((s) => s.color.toLowerCase()));
+  body.appendChild(buildColorRow(colours.size === 1 ? shapes[0].color : null, (c) => {
+    store.updateShapes(Object.fromEntries(ids.map((id) => [id, { color: c }])));
+  }));
+  body.appendChild(buildOpacityRow(shapes[0].opacity ?? 1,
+    (o) => previewShapes(ids, { opacity: o }),
+    (o) => store.updateShapes(Object.fromEntries(ids.map((id) => [id, { opacity: o }])))));
+
+  const solids = shapes.filter((s) => s.closed && s.height > 0);
+  if (shapes.length === 2 && solids.length === 2) {
+    body.appendChild(sectionTitle('Boolean'));
+    const [a, b] = shapes; // A = first selected, B = second
+    const keepRow = document.createElement('label');
+    keepRow.className = 'chk';
+    keepRow.innerHTML = '<input type="checkbox" /> Keep originals';
+    const keep = keepRow.querySelector('input');
+    const ops = document.createElement('div');
+    ops.className = 'btn-row';
+    ops.appendChild(button('Intersect', 'small', () => runBoolean('intersect', a, b, keep.checked), 'Keep only the volume the two share'));
+    ops.appendChild(button('Union', 'small', () => runBoolean('union', a, b, keep.checked), 'Merge both into one'));
+    ops.appendChild(button('Subtract', 'small', () => runBoolean('subtract', a, b, keep.checked), 'Cut the second-selected volume out of the first'));
+    body.appendChild(ops);
+    body.appendChild(keepRow);
+    body.appendChild(hint('Subtract removes the second shape you selected from the first. Results keep the first shape\'s level and colour.'));
+  } else if (shapes.length === 2) {
+    body.appendChild(hint('Booleans (Intersect / Union / Subtract) need two extruded, closed shapes.'));
+  }
+
+  body.appendChild(button('Delete shapes', 'danger full', () => store.removeShapes(ids)));
+  propsPanel.appendChild(body);
 }
 
 // Properties for a selected reference image: width (drives height via its
@@ -604,10 +917,14 @@ function renderProps() {
   const model = store.state.importedModels.find((m) => m.id === store.state.selectedModelId);
   if (model) { renderModelProps(model); return; }
 
-  const shape = store.state.shapes.find((s) => s.id === store.state.selection[0]);
+  if (store.state.selectedAnnotation) { renderAnnotationProps(store.state.selectedAnnotation); return; }
+
+  const selected = store.state.shapes.filter((s) => store.state.selection.includes(s.id));
   propsPanel.innerHTML = '';
+  if (selected.length > 1) { renderMultiProps(selected); return; }
+  const shape = selected[0];
   if (!shape) {
-    propsPanel.innerHTML = '<div class="panel-header"><span>Properties</span></div><div class="panel-empty">Select a shape to edit it.</div>';
+    propsPanel.innerHTML = '<div class="panel-header"><span>Properties</span></div><div class="panel-empty">Select a shape to edit it. Shift+click to select two for Intersect / Union / Subtract.</div>';
     return;
   }
   const header = document.createElement('div');
@@ -620,43 +937,78 @@ function renderProps() {
 
   const typeRow = document.createElement('div');
   typeRow.className = 'props-row';
-  typeRow.innerHTML = `<span>Type</span><b>${shape.type}</b>`;
+  typeRow.innerHTML = `<span>Type</span><b>${shape.type === 'spline' ? 'curve' : shape.type}</b>`;
   body.appendChild(typeRow);
 
-  body.appendChild(buildColorRow(shape));
+  // Level
+  const levelRow = document.createElement('label');
+  levelRow.className = 'props-row';
+  levelRow.innerHTML = '<span>Level</span>';
+  const levelSelect = document.createElement('select');
+  for (const l of store.state.layers) {
+    const opt = document.createElement('option');
+    opt.value = l.id;
+    opt.textContent = `${l.name} (+${l.elevation.toFixed(2)})`;
+    opt.selected = l.id === shape.layerId;
+    levelSelect.appendChild(opt);
+  }
+  levelSelect.onchange = () => store.moveShapesToLayer([shape.id], levelSelect.value);
+  levelRow.appendChild(levelSelect);
+  body.appendChild(levelRow);
 
+  body.appendChild(buildColorRow(shape.color, (c) => store.updateShape(shape.id, { color: c })));
   if (shape.closed) {
-    const heightRow = document.createElement('label');
-    heightRow.className = 'props-row';
-    heightRow.innerHTML = `<span>Extrude height (m)</span>`;
-    const heightInput = document.createElement('input');
-    heightInput.type = 'number';
-    heightInput.step = '0.1';
-    heightInput.min = '0';
-    heightInput.value = shape.height;
-    heightInput.onchange = () => store.updateShape(shape.id, { height: Math.max(0, parseFloat(heightInput.value) || 0) });
-    heightRow.appendChild(heightInput);
-    body.appendChild(heightRow);
-
-    const hint = document.createElement('div');
-    hint.className = 'panel-hint';
-    hint.textContent = shape.height > 0
-      ? 'Extruded — included in .obj export.'
-      : 'Height is 0 — shown as a flat footprint only. Set a height, or use the Push/Pull tool in the 3D view.';
-    body.appendChild(hint);
-  } else {
-    const hint = document.createElement('div');
-    hint.className = 'panel-hint';
-    hint.textContent = 'Open lines are reference geometry and are not extruded or exported.';
-    body.appendChild(hint);
+    body.appendChild(buildOpacityRow(shape.opacity ?? 1,
+      (o) => previewShapes([shape.id], { opacity: o }),
+      (o) => store.updateShape(shape.id, { opacity: o })));
   }
 
-  const delBtn = document.createElement('button');
-  delBtn.className = 'btn danger full';
-  delBtn.textContent = 'Delete shape';
-  delBtn.onclick = () => store.removeShapes([shape.id]);
-  body.appendChild(delBtn);
+  if (shape.type === 'spline') {
+    const closedRow = document.createElement('label');
+    closedRow.className = 'props-row';
+    closedRow.innerHTML = '<span>Closed curve</span>';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!shape.closed;
+    cb.onchange = () => store.updateShape(shape.id, { closed: cb.checked, height: cb.checked ? (shape.height || layerOf(shape)?.defaultHeight || 3) : 0 });
+    closedRow.appendChild(cb);
+    body.appendChild(closedRow);
+  }
 
+  if (shape.closed) {
+    body.appendChild(numberRow('Extrude height (m)', shape.height, {
+      min: 0, onChange: (v) => store.updateShape(shape.id, { height: Math.max(0, v || 0) }),
+    }));
+    body.appendChild(numberRow('Base offset (m)', shape.base ?? 0, {
+      onChange: (v) => store.updateShape(shape.id, { base: Number.isFinite(v) ? v : 0 }),
+    }));
+
+    // Measurements
+    body.appendChild(sectionTitle('Measurements'));
+    const b = boundsOf(shapePoints(shape));
+    const area = shapeArea(shape);
+    body.appendChild(infoRow('Width × depth', `${(b.maxX - b.minX).toFixed(2)} × ${(b.maxY - b.minY).toFixed(2)} m`));
+    body.appendChild(infoRow('Footprint area', formatArea(area)));
+    body.appendChild(infoRow('Perimeter', formatLength(shapePerimeter(shape))));
+    if (shape.height > 0) {
+      body.appendChild(infoRow('Volume', `${(area * shape.height).toFixed(2)} m³`));
+      const bottom = shapeBaseZ(shape, layerOf(shape));
+      body.appendChild(infoRow('Bottom / top', `+${bottom.toFixed(2)} / +${(bottom + shape.height).toFixed(2)} m`));
+    }
+
+    if (shape.height > 0) {
+      body.appendChild(button('Stack copy on top', 'full', () => stackCopyOnTop(shape),
+        'Duplicate this footprint directly on top of it — onto the level at that height if there is one'));
+    }
+    body.appendChild(hint(shape.height > 0
+      ? 'Extruded — included in .obj / .stl export. Alt+drag it in the 3D view to lift it.'
+      : 'Height is 0 — shown as a flat footprint only. Set a height, or use the Push/Pull tool in the 3D view.'));
+  } else {
+    body.appendChild(infoRow('Length', formatLength(shapePerimeter(shape))));
+    body.appendChild(hint('Open lines and curves are reference geometry and are not extruded or exported as solids.'));
+  }
+
+  body.appendChild(button('Delete shape', 'danger full', () => store.removeShapes([shape.id])));
   propsPanel.appendChild(body);
 }
 store.onChange(renderProps);
@@ -708,20 +1060,145 @@ function renderImportedModels() {
 store.onChange(renderImportedModels);
 renderImportedModels();
 
+// ---------------- levels panel ----------------
+// Levels (floors) stack volumes vertically: every shape sits on its level's
+// elevation (plus its own base offset). New shapes go on the active level.
+const levelsPanel = document.getElementById('levels-panel');
+function renderLevels() {
+  const { layers, shapes, activeLayerId } = store.state;
+  levelsPanel.innerHTML = '';
+
+  const header = document.createElement('div');
+  header.className = 'panel-header';
+  header.innerHTML = '<span>Levels</span>';
+  const add = document.createElement('button');
+  add.className = 'btn small';
+  add.textContent = '+ Add level';
+  add.title = 'Add a level on top of the highest one';
+  add.onclick = () => store.addLayer();
+  header.appendChild(add);
+  levelsPanel.appendChild(header);
+
+  const list = document.createElement('div');
+  list.className = 'levels-list';
+  // Highest level at the top of the list, like a section through the building.
+  [...layers].sort((a, b) => b.elevation - a.elevation).forEach((layer) => {
+    const row = document.createElement('div');
+    row.className = 'level-row' + (layer.id === activeLayerId ? ' active' : '');
+    row.onclick = () => { if (layer.id !== store.state.activeLayerId) store.setActiveLayer(layer.id); };
+
+    const top = document.createElement('div');
+    top.className = 'level-top';
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'active-level';
+    radio.checked = layer.id === activeLayerId;
+    radio.title = 'Draw on this level';
+    const name = document.createElement('input');
+    name.type = 'text';
+    name.className = 'level-name';
+    name.value = layer.name;
+    name.onclick = (e) => e.stopPropagation();
+    name.onchange = () => store.updateLayer(layer.id, { name: name.value.trim() || layer.name });
+    const colour = document.createElement('input');
+    colour.type = 'color';
+    colour.value = layer.color;
+    colour.title = 'Level colour (for new shapes on this level)';
+    colour.onclick = (e) => e.stopPropagation();
+    colour.onchange = () => store.updateLayer(layer.id, { color: colour.value });
+    const eye = document.createElement('button');
+    eye.className = 'icon-btn small' + (layer.visible ? '' : ' off');
+    eye.textContent = layer.visible ? '👁' : '—';
+    eye.title = layer.visible ? 'Hide level' : 'Show level';
+    eye.onclick = (e) => { e.stopPropagation(); store.updateLayer(layer.id, { visible: !layer.visible }); };
+    const lock = document.createElement('button');
+    lock.className = 'icon-btn small' + (layer.locked ? ' on' : '');
+    lock.textContent = layer.locked ? '🔒' : '🔓';
+    lock.title = layer.locked ? 'Unlock level' : 'Lock level (shapes can\'t be selected)';
+    lock.onclick = (e) => { e.stopPropagation(); store.updateLayer(layer.id, { locked: !layer.locked }); };
+    const del = document.createElement('button');
+    del.className = 'icon-btn small danger';
+    del.textContent = '✕';
+    del.title = 'Delete level and its shapes';
+    del.disabled = layers.length <= 1;
+    del.onclick = (e) => {
+      e.stopPropagation();
+      const n = shapes.filter((sh) => sh.layerId === layer.id).length;
+      if (n && !confirm(`Delete "${layer.name}" and its ${n} shape${n === 1 ? '' : 's'}?`)) return;
+      store.removeLayer(layer.id);
+    };
+    top.append(radio, name, colour, eye, lock, del);
+
+    const bottom = document.createElement('div');
+    bottom.className = 'level-bottom';
+    const field = (label, value, key, min) => {
+      const wrap = document.createElement('label');
+      wrap.innerHTML = `<span>${label}</span>`;
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.step = '0.1';
+      if (min !== undefined) input.min = String(min);
+      input.value = String(value);
+      input.onclick = (e) => e.stopPropagation();
+      input.onchange = () => {
+        const v = parseFloat(input.value);
+        if (Number.isFinite(v)) store.updateLayer(layer.id, { [key]: min !== undefined ? Math.max(min, v) : v });
+      };
+      wrap.appendChild(input);
+      return wrap;
+    };
+    const area = shapes.filter((sh) => sh.layerId === layer.id && sh.closed && sh.height > 0)
+      .reduce((t, sh) => t + shapeArea(sh), 0);
+    const areaEl = document.createElement('span');
+    areaEl.className = 'level-area';
+    areaEl.textContent = formatArea(area);
+    areaEl.title = 'Footprint area of the extruded shapes on this level';
+    bottom.append(field('Elev', layer.elevation, 'elevation'), field('H', layer.defaultHeight, 'defaultHeight', 0.1), areaEl);
+
+    row.append(top, bottom);
+    list.appendChild(row);
+  });
+  levelsPanel.appendChild(list);
+
+  const actions = document.createElement('div');
+  actions.className = 'btn-row';
+  actions.appendChild(button('Colour as gradient', 'small', () => store.colourLevelsAsGradient(),
+    'Colour every level (and its shapes) from warm orange at the bottom to pale straw at the top'));
+  actions.appendChild(button('Restack', 'small', () => store.restackLevels(),
+    'Set each level\'s elevation to sit exactly on top of the one below (using each level\'s height)'));
+  levelsPanel.appendChild(actions);
+  levelsPanel.appendChild(hint('New shapes go on the active level. "Elev" is the floor elevation, "H" the default height for new shapes. Use Front / Back / Left / Right in the 3D view for elevations.'));
+}
+store.onChange(renderLevels);
+renderLevels();
+
+// The plan label names the level you're drawing on.
+const planLabel = document.getElementById('plan-label');
+function renderPlanLabel() {
+  const l = store.activeLayer();
+  planLabel.textContent = `PLAN VIEW — ${l.name.toUpperCase()} (+${l.elevation.toFixed(2)} m)`;
+}
+store.onChange(renderPlanLabel);
+renderPlanLabel();
+
 // ---------------- status bar ----------------
 const statusCoords = document.getElementById('status-coords');
 const statusTool = document.getElementById('status-tool');
 const statusCount = document.getElementById('status-count');
 const TOOL_LABELS = {
-  select: 'Select / Move / Scale', line: 'Line (reference)', rect: 'Rectangle',
-  circle: 'Circle', polygon: 'Polygon', pushpull: 'Push / Pull (drag a roof to extrude)',
+  select: 'Select / Move / Scale (Shift = add, drag = box select)', line: 'Line (reference)', rect: 'Rectangle',
+  circle: 'Circle', polygon: 'Polygon', spline: 'Curve (Enter / double-click to close)',
+  pushpull: 'Push / Pull (drag a roof to extrude)',
+  dimension: 'Dimension (click two points, then place)', area: 'Area (click corners, Enter to close)',
 };
 function updateStatus(s = {}) {
   if (s.cursor) statusCoords.textContent = `x ${s.cursor.x.toFixed(2)}m, y ${s.cursor.y.toFixed(2)}m`;
+  if (s.measure) statusCoords.textContent += ` · ${s.measure}`;
   statusTool.textContent = TOOL_LABELS[store.state.tool] || store.state.tool;
   if (s.pushPullHeight !== undefined) {
     statusCoords.textContent = `height ${s.pushPullHeight.toFixed(2)}m`;
   }
+  if (s.projection) refreshProjButton();
 }
 function renderCounts() {
   const closedCount = store.state.shapes.filter((s) => s.closed).length;
@@ -732,6 +1209,12 @@ function renderCounts() {
   if (store.state.importedModels.length) {
     text += ` · ${store.state.importedModels.length} model${store.state.importedModels.length === 1 ? '' : 's'}`;
   }
+  // Gross floor area: the footprint of every visible extruded volume.
+  const visible = new Set(store.state.layers.filter((l) => l.visible).map((l) => l.id));
+  const gfa = store.state.shapes
+    .filter((sh) => sh.closed && sh.height > 0 && visible.has(sh.layerId))
+    .reduce((t, sh) => t + shapeArea(sh), 0);
+  if (gfa > 0) text += ` · GFA ${formatArea(gfa)}`;
   statusCount.textContent = text;
   updateStatus();
 }
@@ -785,11 +1268,7 @@ function pasteClipboard() {
     const pasted = clipboard.shapes.map((sh) => {
       const clone = JSON.parse(JSON.stringify(sh));
       clone.id = nextId('shape');
-      if (clone.type === 'circle') {
-        clone.center = { x: clone.center.x + off, y: clone.center.y + off };
-      } else {
-        clone.points = clone.points.map((p) => ({ x: p.x + off, y: p.y + off }));
-      }
+      Object.assign(clone, mapShapeCoords(clone, (p) => ({ x: p.x + off, y: p.y + off })));
       return clone;
     });
     store.addShapes(pasted);
@@ -822,18 +1301,23 @@ btnCut.onclick = cutSelection;
 btnPaste.onclick = pasteClipboard;
 
 // ---------------- keyboard shortcuts ----------------
-const TOOL_KEYS = { v: 'select', l: 'line', r: 'rect', c: 'circle', p: 'polygon', e: 'pushpull' };
+const TOOL_KEYS = {
+  v: 'select', l: 'line', r: 'rect', c: 'circle', p: 'polygon', s: 'spline', e: 'pushpull',
+  d: 'dimension', a: 'area',
+};
 window.addEventListener('keydown', (e) => {
   const el = document.activeElement;
-  const typing = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
-  if (typing) return;
+  const typing = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT');
+  if (typing || exportDialog.open) return;
 
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); store.undo(); return; }
   if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) { e.preventDefault(); store.redo(); return; }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') { e.preventDefault(); copySelection(); return; }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') { e.preventDefault(); cutSelection(); return; }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') { e.preventDefault(); pasteClipboard(); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.key.toLowerCase() === 'f') { scene3d.frameAll(); plan2d.zoomToFit(); return; }
+  if (e.key.toLowerCase() === 'o') { toggleProjection(); return; }
   const tool = TOOL_KEYS[e.key.toLowerCase()];
   if (tool) store.setTool(tool);
 });
