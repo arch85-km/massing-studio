@@ -2,24 +2,25 @@ cff-version: 1.2.0
 message: "If this tool informs a paper, a thesis, a lecture or a studio brief, please cite it as software."
 type: software
 title: "Massing Studio: A browser-based plan drawing and extrusion tool"
-version: 1.0.0
-date-released: 2026-09-17
+version: 1.1.0
+date-released: 2026-09-26
 doi: 10.5281/zenodo.22814301
 identifiers:
   - type: doi
     value: 10.5281/zenodo.22814301
     description: "Concept DOI — always resolves to the latest version"
-  - type: doi
-    value: 10.5281/zenodo.22814302
-    description: "Version DOI — this release, 1.0.0"
 abstract: >-
   A lightweight, browser-based tool for sketching 2D plans and extruding
   them into 3D massing models, built for architecture students who need to
   go from a plan diagram to an exportable 3D volume in minutes without the
   learning curve of a full CAD/BIM suite. Draw a footprint, set a height or
   drag it in a Push/Pull 3D view, and export .obj/.stl/.dxf for Rhino,
-  Blender, SketchUp, a slicer, or another CAD package. Runs entirely in the
-  browser with no install, account or build step.
+  Blender, SketchUp, a slicer, or another CAD package. Version 1.1.0 adds
+  stacked levels with orthographic elevations, curves, dimension and area
+  measurement, Intersect/Union/Subtract between volumes, per-shape
+  transparency, high-resolution PNG/JPEG export, and an .obj that reopens
+  as an editable model. Runs entirely in the browser with no install,
+  account or build step.
 authors:
   - family-names: Al-Obaidi
     given-names: Karam M.
