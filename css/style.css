@@ -215,10 +215,12 @@ input[type="color"] {
   z-index: 20;
 }
 .dropdown-menu.open { display: flex; flex-direction: column; gap: 2px; }
+/* Pinned to the viewport on phones — see placeMenu() in main.js. */
+.dropdown-menu.pinned { position: fixed; right: auto; z-index: 50; }
 /* This button sits near the toolbar's left edge (unlike Export/Import, which
    sit further right) — right:0 would push the menu leftward off-screen, so
    it opens from its own left edge instead. */
-#clipboard-menu { left: 0; right: auto; }
+#clipboard-menu, #save-menu { left: 0; right: auto; }
 .dropdown-item {
   background: transparent;
   border: none;

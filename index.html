@@ -1,4 +1,4 @@
-<!-- Massing Studio v1.0.0 — 2026-09-17 -->
+<!-- Massing Studio v1.1.0 — 2026-09-26 -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -6,8 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Massing Studio</title>
   <meta name="description" content="Massing Studio — a browser-based plan drawing and extrusion tool." />
-  <meta name="version" content="1.0.0" />
-  <meta name="date" content="2026-09-17" />
+  <meta name="version" content="1.1.0" />
+  <meta name="date" content="2026-09-26" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230d1117'/%3E%3Cpath d='M20 70 L20 30 L50 15 L80 30 L80 70 L50 85 Z' fill='none' stroke='%234fa3ff' stroke-width='6'/%3E%3Cpath d='M20 30 L50 45 L80 30 M50 45 L50 85' fill='none' stroke='%234fa3ff' stroke-width='6'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -70,9 +70,15 @@
     <div class="toolbar-row toolbar-row-secondary">
       <div class="tool-group" role="group" aria-label="File">
         <button id="btn-new" class="btn" title="New drawing">New</button>
-        <button id="btn-save" class="btn" title="Save project as JSON">Save</button>
-        <button id="btn-load" class="btn" title="Load a saved project">Open</button>
-        <input id="load-input" type="file" accept=".json,.cadproj.json" hidden />
+        <div class="dropdown" id="save-dropdown">
+          <button id="btn-save-toggle" class="btn" title="Save the project" aria-haspopup="true" aria-expanded="false">Save ▾</button>
+          <div class="dropdown-menu" id="save-menu" role="menu">
+            <button class="dropdown-item" id="btn-save" role="menuitem" title="Save the whole project as a .json file">Save project (.json)</button>
+            <button class="dropdown-item" id="btn-save-obj" role="menuitem" title="Save as a .obj that Rhino, Blender or SketchUp can read — and that reopens here fully editable">Save as .obj (reopens editable)</button>
+          </div>
+        </div>
+        <button id="btn-load" class="btn" title="Open a saved project (.json), or a .obj — straight extrusions come in as editable shapes">Open</button>
+        <input id="load-input" type="file" accept=".json,.cadproj.json,.obj" hidden />
         <div class="dropdown" id="import-dropdown">
           <button id="btn-import-toggle" class="btn" title="Import a file into the drawing" aria-haspopup="true" aria-expanded="false">Import ▾</button>
           <div class="dropdown-menu" id="import-menu" role="menu">
@@ -140,7 +146,7 @@
           <li><b>Pan:</b> space+drag or middle-mouse · <b>Zoom:</b> scroll</li>
           <li><b>Orbit (3D):</b> left-drag · <b>Pan:</b> right-drag</li>
         </ul>
-        <div class="panel-hint">Massing Studio v1.0.0 · 2026-09-17</div>
+        <div class="panel-hint">Massing Studio v1.1.0 · 2026-09-26</div>
       </div>
     </aside>
 

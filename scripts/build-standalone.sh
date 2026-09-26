@@ -18,12 +18,23 @@ strip_module() {
     { sub(/^export /, ""); print }
   ' "$1"
 }
+
+# The modules below get their imports back as destructuring from App —
+# the names are read from each module's own import statements.
+imported_names() {
+  awk '
+    /^import[[:space:]]/ { grab = 1 }
+    grab { buf = buf " " $0; if ($0 ~ /;[[:space:]]*$/) grab = 0 }
+    END { print buf }
+  ' "$1" | grep -oE "import[[:space:]]*\{[^}]*\}[[:space:]]*from[[:space:]]*'\./[^']+'" \
+         | sed -E "s/import[[:space:]]*\{([^}]*)\}.*/\1/" | tr ',' '\n' | tr -d ' ' | grep -v '^$' | paste -sd, - | sed 's/,/, /g'
+}
 mkdir -p "$(dirname "$OUT")"
 rm -f "$OUT"
 
 # ---- head + styles ----
 cat > "$OUT" <<'HTMLHEAD'
-<!-- Massing Studio v1.0.0 — 2026-09-17 -->
+<!-- Massing Studio v1.1.0 — 2026-09-26 -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -49,8 +60,8 @@ cat >> "$OUT" <<'HTMLHEAD2'
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Massing Studio</title>
   <meta name="description" content="Massing Studio — a browser-based plan drawing and extrusion tool." />
-  <meta name="version" content="1.0.0" />
-  <meta name="date" content="2026-09-17" />
+  <meta name="version" content="1.1.0" />
+  <meta name="date" content="2026-09-26" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230d1117'/%3E%3Cpath d='M20 70 L20 30 L50 15 L80 30 L80 70 L50 85 Z' fill='none' stroke='%234fa3ff' stroke-width='6'/%3E%3Cpath d='M20 30 L50 45 L80 30 M50 45 L50 85' fill='none' stroke='%234fa3ff' stroke-width='6'/%3E%3C/svg%3E" />
   <style>
 HTMLHEAD2
@@ -157,16 +168,14 @@ echo '  App.booleanShapes = booleanShapes;' >> "$OUT"
 echo '  })(window.App);' >> "$OUT"
 echo '  </script>' >> "$OUT"
 
-# The modules below get their imports back as destructuring from App —
-# the names are read from each module's own import statements.
-imported_names() {
-  awk '
-    /^import[[:space:]]/ { grab = 1 }
-    grab { buf = buf " " $0; if ($0 ~ /;[[:space:]]*$/) grab = 0 }
-    END { print buf }
-  ' "$1" | grep -oE "import[[:space:]]*\{[^}]*\}[[:space:]]*from[[:space:]]*'\./[^']+'" \
-         | sed -E "s/import[[:space:]]*\{([^}]*)\}.*/\1/" | tr ',' '\n' | tr -d ' ' | grep -v '^$' | paste -sd, - | sed 's/,/, /g'
-}
+# ---- objio.js ----
+echo '  <script>' >> "$OUT"
+echo '  (function(App){' >> "$OUT"
+echo "  const { $(imported_names js/objio.js) } = App;" >> "$OUT"
+strip_module js/objio.js >> "$OUT"
+echo '  App.buildProjectOBJ = buildProjectOBJ; App.extractProjectJSON = extractProjectJSON; App.reconstructFromOBJ = reconstructFromOBJ;' >> "$OUT"
+echo '  })(window.App);' >> "$OUT"
+echo '  </script>' >> "$OUT"
 
 # ---- canvas2d.js ----
 echo '  <script>' >> "$OUT"
