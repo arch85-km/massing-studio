@@ -1,0 +1,564 @@
+<!-- ======================================================================
+     MASSING STUDIO — "Method notes in brief"
+     A short companion to the full method notes.
+
+     Same design system as the full notes: the .ms-doc scope, the same custom
+     properties and class names, the same dark-mode block.
+
+     IF YOU PASTE THIS ON THE SAME PAGE AS THE FULL NOTES, delete the <style>
+     block below — the full notes already define every rule it contains.
+
+     THE CITATION STRIP JUMPS HERE: the "How to cite" heading carries
+     id="how-to-cite". Only ONE element per page may hold that id.
+     ====================================================================== -->
+
+<style>
+
+
+
+.ms-doc{
+  --ms-paper:#F1F2EE; --ms-surface:#FBFBF9; --ms-surface2:#E8EAE4;
+  --ms-ink:#16191B; --ms-ink2:#4C555A; --ms-ink3:#5F696E;
+  --ms-rule:#D6D9D1; --ms-rule2:#E5E7E1;
+  --ms-accent:#1D5A73; --ms-accent-soft:rgba(29,90,115,.10);
+  --ms-ok:#3F6B47;  --ms-ok-soft:rgba(63,107,71,.12);
+  --ms-warn:#8A6410;--ms-warn-soft:rgba(138,100,16,.13);
+  --ms-no:#8E3A32;  --ms-no-soft:rgba(142,58,50,.11);
+  --ms-fd:"Poppins",system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --ms-fb:inherit;
+  --ms-fm:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --ms-measure:90ch; --ms-rail:4.75rem;
+
+  background:var(--ms-paper); color:var(--ms-ink);
+  font-family:var(--ms-fb); font-size:17px; line-height:1.65; font-weight:400;
+  max-width:1040px; margin:0 auto; padding:0 20px 3rem;
+  -webkit-font-smoothing:antialiased; text-align:left;
+}
+@media (prefers-color-scheme:dark){
+  .ms-doc.ms-auto-dark{
+    --ms-paper:#121517; --ms-surface:#191D20; --ms-surface2:#21262A;
+    --ms-ink:#E9EBE6; --ms-ink2:#A6AFB4; --ms-ink3:#79838A;
+    --ms-rule:#2C3235; --ms-rule2:#232829;
+    --ms-accent:#74B6D0; --ms-accent-soft:rgba(116,182,208,.14);
+    --ms-ok:#7FB88C;  --ms-ok-soft:rgba(127,184,140,.14);
+    --ms-warn:#D6A748;--ms-warn-soft:rgba(214,167,72,.15);
+    --ms-no:#DD8479;  --ms-no-soft:rgba(221,132,121,.14);
+  }
+}
+.ms-doc *,.ms-doc *::before,.ms-doc *::after{box-sizing:border-box;}
+.ms-doc h1,.ms-doc h2,.ms-doc h3,.ms-doc h4,.ms-doc p,.ms-doc ul,.ms-doc ol,
+.ms-doc dl,.ms-doc dt,.ms-doc dd{margin:0;padding:0;}
+.ms-doc ul,.ms-doc ol{list-style-position:outside;}
+.ms-doc li{margin:0;}
+.ms-doc a{color:var(--ms-accent);text-decoration:underline;text-underline-offset:2px;}
+.ms-doc code,.ms-doc .ms-mono{font-family:var(--ms-fm);font-size:.855em;}
+.ms-doc b,.ms-doc strong{font-weight:600;}
+.ms-doc code{background:var(--ms-accent-soft);color:var(--ms-accent);
+  padding:.1em .34em;border-radius:2px;border:0;}
+
+/* masthead */
+.ms-doc .ms-masthead{padding:2.75rem 0 1.9rem;border-bottom:2px solid var(--ms-ink);}
+.ms-doc .ms-eyebrow{font-family:var(--ms-fm);font-size:.70rem;font-weight:500;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--ms-accent);margin:0 0 1.1rem;}
+.ms-doc h1{font-family:var(--ms-fd);font-weight:600;
+  font-size:clamp(1.9rem,5.2vw,2.75rem);line-height:1.04;letter-spacing:-.028em;
+  text-wrap:balance;margin:0 0 1.1rem;color:var(--ms-ink);}
+.ms-doc .ms-standfirst{max-width:var(--ms-measure);font-size:1.14rem;line-height:1.6;
+  color:var(--ms-ink2);margin:0;}
+.ms-doc .ms-standfirst strong{color:var(--ms-ink);font-weight:600;}
+.ms-doc .ms-byline{display:flex;flex-wrap:wrap;gap:.5rem 1.6rem;margin-top:1.9rem;
+  font-family:var(--ms-fm);font-size:.74rem;letter-spacing:.04em;color:var(--ms-ink3);}
+.ms-doc .ms-byline b{color:var(--ms-ink2);font-weight:500;}
+
+/* trap notice */
+.ms-doc .ms-traps{margin:2.5rem 0;border:1px solid var(--ms-rule);
+  border-left:4px solid var(--ms-no);background:var(--ms-surface);padding:1.5rem 1.6rem;}
+.ms-doc .ms-traps h2{font-family:var(--ms-fd);font-size:.82rem;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--ms-no);margin:0 0 .9rem;}
+.ms-doc .ms-traps ol{margin:0;padding-left:1.15rem;display:grid;gap:.6rem;}
+.ms-doc .ms-traps li{max-width:var(--ms-measure);}
+
+/* sections */
+.ms-doc .ms-sec{padding:2.5rem 0 0;}
+.ms-doc .ms-sechead{display:grid;grid-template-columns:var(--ms-rail) 1fr;
+  align-items:baseline;gap:0 1rem;border-top:1px solid var(--ms-rule);
+  padding-top:1.4rem;margin-bottom:1.6rem;}
+.ms-doc .ms-secnum{font-family:var(--ms-fm);font-size:.95rem;font-weight:600;
+  color:var(--ms-accent);letter-spacing:.02em;font-variant-numeric:tabular-nums;}
+.ms-doc .ms-sechead h2{font-family:var(--ms-fd);font-weight:600;
+  font-size:clamp(1.3rem,2.9vw,1.7rem);line-height:1.12;letter-spacing:-.02em;
+  text-wrap:balance;margin:0;color:var(--ms-ink);}
+.ms-doc .ms-secbody{display:grid;grid-template-columns:var(--ms-rail) minmax(0,1fr);gap:0 1rem;}
+.ms-doc .ms-secbody>*{grid-column:2;}
+.ms-doc .ms-secbody>p,.ms-doc .ms-secbody>ul,.ms-doc .ms-secbody>ol{max-width:var(--ms-measure);}
+.ms-doc .ms-secbody>p{margin:0 0 1.05rem;}
+.ms-doc .ms-secbody>ul,.ms-doc .ms-secbody>ol{margin:0 0 1.15rem;padding-left:1.15rem;
+  display:grid;gap:.5rem;}
+.ms-doc h3{font-family:var(--ms-fd);font-weight:600;font-size:1.06rem;
+  letter-spacing:-.005em;margin:1.9rem 0 .7rem;color:var(--ms-ink);}
+.ms-doc h4{font-family:var(--ms-fm);font-weight:600;font-size:.74rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ms-ink3);margin:1.7rem 0 .7rem;}
+.ms-doc .ms-footer h4:first-of-type{margin-top:1.1rem;}
+.ms-doc .ms-note{font-size:.9rem;color:var(--ms-ink2);border-left:2px solid var(--ms-rule);
+  padding-left:.95rem;margin:0 0 1.2rem;max-width:var(--ms-measure);}
+
+/* chips + ledger */
+.ms-doc .ms-chip{display:inline-block;font-family:var(--ms-fm);font-size:.64rem;
+  font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:.15em .5em;
+  border-radius:2px;white-space:nowrap;}
+.ms-doc .ms-chip.is-in{background:var(--ms-ok-soft);color:var(--ms-ok);}
+.ms-doc .ms-chip.is-part{background:var(--ms-warn-soft);color:var(--ms-warn);}
+.ms-doc .ms-chip.is-out{background:var(--ms-no-soft);color:var(--ms-no);}
+.ms-doc .ms-ledger{display:grid;gap:0;border:1px solid var(--ms-rule);
+  background:var(--ms-surface);margin-bottom:1.4rem;}
+.ms-doc .ms-ledger>div{display:grid;grid-template-columns:7.5rem minmax(0,1fr);
+  gap:.2rem .9rem;padding:.8rem 1rem;border-bottom:1px solid var(--ms-rule2);}
+.ms-doc .ms-ledger>div:last-child{border-bottom:0;}
+.ms-doc .ms-ledger dt{font-family:var(--ms-fd);font-weight:600;font-size:.95rem;
+  grid-column:2;margin:0;color:var(--ms-ink);}
+.ms-doc .ms-ledger .ms-chip{grid-row:1;grid-column:1;align-self:start;margin-top:.18rem;}
+.ms-doc .ms-ledger dd{grid-column:2;margin:0;font-size:.93rem;color:var(--ms-ink2);
+  line-height:1.55;}
+
+/* footer */
+.ms-doc .ms-footer{margin-top:3rem;padding-top:1.6rem;border-top:2px solid var(--ms-ink);
+  font-size:.86rem;color:var(--ms-ink2);}
+.ms-doc .ms-footer p{max-width:var(--ms-measure);margin:0 0 .8rem;}
+.ms-doc .ms-cite{font-family:var(--ms-fm);font-size:.78rem;color:var(--ms-ink3);line-height:1.7;}
+.ms-doc .ms-ref{border-left:2px solid var(--ms-rule);padding-left:.95rem;margin:0 0 1rem;
+  max-width:var(--ms-measure);font-size:.92rem;color:var(--ms-ink2);}
+.ms-doc pre{margin:0 0 1rem;padding:.9rem 1rem;background:var(--ms-surface);
+  border:1px solid var(--ms-rule);overflow-x:auto;font-family:var(--ms-fm);
+  font-size:.78rem;line-height:1.6;color:var(--ms-ink);white-space:pre;}
+
+/* exercises */
+.ms-doc .ms-ex{border:1px solid var(--ms-rule);background:var(--ms-surface);
+  padding:1.5rem 1.6rem;margin-bottom:1.5rem;}
+.ms-doc .ms-ex-n{font-family:var(--ms-fm);font-size:.7rem;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--ms-accent);
+  display:block;margin-bottom:.35rem;}
+.ms-doc .ms-ex h3{margin:0 0 .9rem;font-size:1.18rem;}
+.ms-doc .ms-steps{margin:0;padding-left:1.2rem;display:grid;gap:.5rem;font-size:.95rem;}
+.ms-doc .ms-principle{font-size:.93rem;color:var(--ms-ink2);
+  border-top:1px solid var(--ms-rule2);padding-top:.85rem;margin:.95rem 0 0;}
+.ms-doc .ms-principle b{color:var(--ms-ink);font-weight:600;}
+
+/* diagrams. The SVGs paint from the same custom properties as everything
+   else, so they invert with the page instead of staying light in dark mode. */
+.ms-doc .ms-fig{margin:0 0 1.2rem;}
+.ms-doc .ms-fig svg{display:block;width:100%;height:auto;
+  background:var(--ms-paper);border:1px solid var(--ms-rule);}
+.ms-doc .ms-fig figcaption{font-family:var(--ms-fm);font-size:.68rem;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ms-ink3);margin-top:.55rem;}
+
+/* Large screens. Most sizes here are in rem, which is relative to the ROOT
+   font size, not to .ms-doc — so raising .ms-doc alone would scale the body
+   copy and leave the byline, notes and references behind. They are stepped up
+   together. */
+@media (min-width:1280px){
+  .ms-doc{font-size:18.5px;max-width:1140px;}
+  .ms-doc .ms-standfirst{font-size:1.22rem;}
+  .ms-doc .ms-byline{font-size:.84rem;}
+  .ms-doc h3{font-size:1.14rem;}
+  .ms-doc .ms-note{font-size:.97rem;}
+  .ms-doc .ms-ref{font-size:1rem;}
+  .ms-doc .ms-cite{font-size:.86rem;}
+  .ms-doc pre{font-size:.86rem;}
+  .ms-doc .ms-ledger dt{font-size:1.02rem;}
+  .ms-doc .ms-ledger dd{font-size:1rem;}
+  .ms-doc .ms-chip{font-size:.70rem;}
+  .ms-doc .ms-traps h2{font-size:.88rem;}
+  .ms-doc .ms-steps{font-size:1rem;}
+  .ms-doc .ms-principle{font-size:.99rem;}
+  .ms-doc .ms-ex-n{font-size:.76rem;}
+}
+@media (max-width:720px){
+  .ms-doc{--ms-rail:0px;font-size:16px;}
+  .ms-doc .ms-sechead{grid-template-columns:1fr;gap:.35rem;}
+  .ms-doc .ms-secbody{grid-template-columns:minmax(0,1fr);}
+  .ms-doc .ms-secbody>*{grid-column:1;}
+  .ms-doc .ms-traps,.ms-doc .ms-ex{padding:1.15rem;}
+}
+@media (max-width:560px){
+  .ms-doc .ms-ledger>div{grid-template-columns:1fr;}
+  .ms-doc .ms-ledger .ms-chip{grid-row:auto;grid-column:1;justify-self:start;margin-bottom:.3rem;}
+  .ms-doc .ms-ledger dt,.ms-doc .ms-ledger dd{grid-column:1;}
+}
+</style>
+
+<div class="ms-doc ms-auto-dark">
+
+  <div class="ms-masthead">
+    <p class="ms-eyebrow">Massing Studio &middot; In brief</p>
+    <h1>Method notes in brief</h1>
+    <p class="ms-standfirst">The short version: what the tool computes, and &mdash; the part that
+      matters most when you cite it &mdash; <strong>what it does not model at all</strong>. It
+      draws a plan, extrudes it by a height, and exports the result. <b>There is no analysis of
+      any kind in it</b>, and no solver anywhere in the source. The
+      <a href="https://github.com/arch85-km/massing-studio" target="_blank" rel="noopener">full
+      method notes</a> give the source values and the references behind every statement here.</p>
+    <div class="ms-byline">
+      <span><b>Audience</b> Architecture students and staff</span>
+      <span><b>Method</b> Plan drawing &middot; straight extrusion &middot; no analysis</span>
+      <span><b>Runs</b> Entirely in the browser</span>
+      <span><b>Version</b> 1.0.0 &middot; 17 September 2026</span>
+    </div>
+  </div>
+
+  <div class="ms-traps">
+    <h2>Three things to know before you cite a number</h2>
+    <ol>
+      <li><b>Snapping only ever happens once, when a shape is first drawn.</b> The Select tool's
+        move and scale handles read the pointer directly and <b>never call the snapping function
+        at all</b>, whatever the Snap checkbox says. Draw a rectangle with Snap on and its corners
+        land on exact grid multiples &mdash; but drag or resize that same rectangle and it can end
+        up anywhere, at an arbitrary fraction of a metre, <b>with nothing on screen to say so and
+        no way to snap it back</b>. A coordinate read off this tool is the grid's answer only for
+        a shape that has never been moved.</li>
+      <li><b>There is no area anywhere in the interface.</b> The tool computes a signed polygon
+        area internally &mdash; the shoelace formula &mdash; but only to work out which way an edge
+        faces and to stop a push/pull drag folding a shape in on itself. It is never shown on
+        screen, never in a properties panel, never in an export. <b>If you want the area of a
+        footprint you have drawn, you compute it yourself.</b></li>
+      <li><b>Nothing here is analysis.</b> No module computes a structural, thermal, daylight or
+        cost quantity of any kind, and there is no solver &mdash; iterative or otherwise &mdash;
+        anywhere in the source.</li>
+    </ol>
+  </div>
+
+  <section class="ms-sec">
+    <div class="ms-sechead"><span class="ms-secnum"></span><h2>What it computes</h2></div>
+    <div class="ms-secbody">
+      <p>Eight things, and none of them is more than a few lines of arithmetic: a snapped
+        coordinate, a distance, a signed polygon area, a centroid, a bounding box, a
+        point-to-segment distance, a line intersection, and an extruded height. <b>The height is
+        the only one that becomes a 3D dimension.</b></p>
+      <p class="ms-note">The one formula worth naming is the <b>shoelace formula</b> for signed
+        area, named as such in the source's own comment. As above, this number is never shown to
+        you &mdash; it exists to tell the push/pull tool which way an edge faces, and to catch a
+        drag that would collapse a footprint to nothing.</p>
+    </div>
+  </section>
+
+  <section class="ms-sec">
+    <div class="ms-sechead"><span class="ms-secnum"></span><h2>Not modelled at all</h2></div>
+    <div class="ms-secbody">
+      <p class="ms-note">This list is long, and <b>that is the honest shape of a massing tool
+        rather than a gap to apologise for.</b></p>
+      <div class="ms-ledger">
+        <div><span class="ms-chip is-out">Out</span><dt>Any quantity beyond geometry</dt>
+          <dd>No structural, thermal, daylight or cost quantity is computed anywhere. And no area,
+            floor area or volume is shown &mdash; the only area the tool computes is internal to
+            the push/pull tool's own arithmetic.</dd></div>
+        <div><span class="ms-chip is-out">Out</span><dt>Solid modelling beyond a straight extrusion</dt>
+          <dd>No booleans, no holes or openings, no curved or sloped surfaces, no roofs. Nothing
+            curves, tapers or steps.</dd></div>
+        <div><span class="ms-chip is-out">Out</span><dt>Material, thickness, or relationships</dt>
+          <dd>A shape has a colour and a height, and nothing else. Nothing here knows that one
+            footprint sits beside, inside or on top of another.</dd></div>
+        <div><span class="ms-chip is-part">Partly</span><dt>Reference imports, and floors</dt>
+          <dd>An <span class="ms-mono">.obj</span> or an image can be placed, moved and scaled, but
+            neither is checked against anything, and an imported model stays a static reference for
+            the life of the project. The data model supports stacked layers, but
+            <b>nothing in the interface ever creates a second one.</b></dd></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ms-sec">
+    <div class="ms-sechead"><span class="ms-secnum"></span><h2>How exact the numbers are</h2></div>
+    <div class="ms-secbody">
+      <p><b>The arithmetic itself is exact</b> &mdash; there is no approximation, no solver
+        converging on an answer, nothing to be near. The honest questions are about resolution and
+        representation instead.</p>
+      <div class="ms-ledger">
+        <div><span class="ms-chip is-part">1 grid unit</span><dt>What the grid costs</dt>
+          <dd>With Snap on, the smallest difference a newly drawn point can express is one grid
+            unit &mdash; one metre by default. <b>That guarantee holds only at the instant a shape
+            is created.</b></dd></div>
+        <div><span class="ms-chip is-in">full double</span><dt>Precision in the exports</dt>
+          <dd>DXF and OBJ both write coordinates at full precision with no rounding.
+            <b>STL is the exception</b>, for a format reason rather than a design choice: binary
+            STL stores every vertex as a 32-bit float, so re-importing one loses precision the
+            others would not.</dd></div>
+        <div><span class="ms-chip is-out">Not guarded</span><dt>Where a wall push/pull can go wrong</dt>
+          <dd>The drag is rejected if it would shrink the area below five per cent of its start,
+            but <b>area alone cannot catch every way a polygon folds in on itself</b> &mdash; a
+            drag that crosses one of the shape's own non-adjacent edges while leaving the area
+            roughly unchanged is not guarded against. And where the neighbouring edges are
+            near-parallel, the code falls back to moving both corners in a straight line: a
+            reasonable approximation, not the same geometric operation.</dd></div>
+        <div><span class="ms-chip is-out">None</span><dt>What is actually asserted</dt>
+          <dd><b>There is no automated test suite anywhere in this application's source</b> &mdash;
+            no test files, no test script, nothing. What the tool computes has been read from the
+            code; it has not been checked against itself by any suite of its own.</dd></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ms-sec">
+    <div class="ms-sechead"><span class="ms-secnum"></span><h2>What survives an export</h2></div>
+    <div class="ms-secbody">
+      <p>Three round trips exist, and <b>only one is lossless in both directions</b>:</p>
+      <div class="ms-ledger">
+        <div><span class="ms-chip is-in">Both ways</span><dt>Save, then open</dt>
+          <dd>The entire state as JSON, with every imported image and model folded in. Opening
+            reverses it exactly.</dd></div>
+        <div><span class="ms-chip is-in">Both ways</span><dt>DXF export, then DXF import</dt>
+          <dd>One polyline per shape, or a circle; import reads the same entities back as
+            <b>editable</b> shapes, by design.</dd></div>
+        <div><span class="ms-chip is-out">One way</span><dt>OBJ and STL export</dt>
+          <dd>Nothing re-imports either back into editable geometry. An imported
+            <span class="ms-mono">.obj</span> only ever becomes a static reference.</dd></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ms-sec">
+    <div class="ms-sechead"><span class="ms-secnum"></span><h2>Against SketchUp, BIM and CAD</h2></div>
+    <div class="ms-secbody">
+      <p><b>Agrees</b> on push/pull &mdash; dragging a top face or a side wall is the same operation
+        SketchUp performs &mdash; on the plan-to-solid workflow, and on DXF as a real interchange
+        format, written with standard entity types closed as connected polylines.</p>
+      <p><b>Diverges</b> in having no object model beyond a footprint and a height. A Revit wall
+        carries a type, a thickness, layers and relationships; <b>a Massing Studio &ldquo;wall&rdquo;
+        is one side of an extruded rectangle</b>. No BIM metadata, no analysis, and no parametric
+        relationships &mdash; move one shape and nothing else reacts, because nothing here knows
+        the shapes are related at all.</p>
+    </div>
+  </section>
+
+  <section class="ms-sec">
+    <div class="ms-sechead"><span class="ms-secnum"></span><h2>Three exercises</h2></div>
+    <div class="ms-secbody">
+      <p>Each isolates one variable and holds everything else fixed. <b>Read the model, not the
+        picture</b> &mdash; and not a number the tool never gives you.</p>
+
+      <div class="ms-ex">
+        <span class="ms-ex-n">Exercise 01</span>
+        <h3>Footprint depth governs how much of a room is daylit</h3>
+        <figure class="ms-fig">
+<svg viewBox="0 0 720 280" role="img" aria-label="Three plans of the same six metre wide footprint at depths of six, twelve and eighteen metres. A daylight reach band of about five metres from the window face is marked on each. At six metres the plan is almost entirely within reach; at eighteen metres most of it is beyond.">
+  <g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11" fill="var(--ms-ink)">
+    <text x="20" y="24">PLAN &#183; 6 m wide, window on the top face</text>
+  </g>
+  <g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10" fill="var(--ms-ink3)">
+    <text x="20" y="40">the daylit band is a rule of thumb applied by hand, not by the tool</text>
+  </g>
+  <!-- three plans: 1 m = 9 units, width 6 m = 54, band 5 m = 45 -->
+  <g stroke="var(--ms-ink)" stroke-width="1.6" fill="var(--ms-surface)">
+    <rect x="93" y="62" width="54" height="54"/>
+    <rect x="333" y="62" width="54" height="108"/>
+    <rect x="573" y="62" width="54" height="162"/>
+  </g>
+  <g fill="var(--ms-warn)" opacity=".22">
+    <rect x="93" y="62" width="54" height="45"/>
+    <rect x="333" y="62" width="54" height="45"/>
+    <rect x="573" y="62" width="54" height="45"/>
+  </g>
+  <g stroke="var(--ms-accent)" stroke-width="3">
+    <line x1="93" y1="62" x2="147" y2="62"/><line x1="333" y1="62" x2="387" y2="62"/><line x1="573" y1="62" x2="627" y2="62"/>
+  </g>
+  <g stroke="var(--ms-warn)" stroke-width="1.2" stroke-dasharray="4 3">
+    <line x1="87" y1="107" x2="153" y2="107"/><line x1="327" y1="107" x2="393" y2="107"/><line x1="567" y1="107" x2="633" y2="107"/>
+  </g>
+  <g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10" fill="var(--ms-ink3)">
+    <text x="60" y="58">window</text><text x="300" y="58">window</text><text x="540" y="58">window</text>
+  </g>
+  <g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10.5" fill="var(--ms-ink)">
+    <text x="88" y="136">depth 6 m</text><text x="328" y="190">depth 12 m</text><text x="568" y="244">depth 18 m</text>
+  </g>
+  <g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10">
+    <text x="60" y="152" fill="var(--ms-ok)">almost all within reach</text>
+    <text x="300" y="206" fill="var(--ms-warn)">under half within reach</text>
+    <text x="540" y="260" fill="var(--ms-no)">most of the plan beyond it</text>
+  </g>
+</svg>
+<figcaption>Plan. The tool gives you an exact footprint to measure the rule of thumb against &mdash; it does not apply the rule.</figcaption>
+        </figure>
+        <ol class="ms-steps">
+          <li>Draw a single rectangle 6&nbsp;m wide. Set its height to one storey.</li>
+          <li>Extend its depth from 6&nbsp;m to 18&nbsp;m in three steps, dragging <b>one side
+            wall</b> each time with the tool's own push/pull.</li>
+          <li>At each depth, mark by eye how far daylight from the 6&nbsp;m face is likely to reach
+            &mdash; roughly twice the window head height is the usual rule of thumb, applied here
+            <b>entirely outside the tool</b>.</li>
+          <li>Note the depth beyond which the far end of the room falls outside that reach.</li>
+        </ol>
+        <p class="ms-principle"><b>Principle.</b> The tool has no daylight model of any kind. What
+          it gives you is an exact footprint to measure a rule of thumb against by hand, <b>which is
+          a different and more honest use of the tool than expecting it to answer the question
+          itself</b>.</p>
+      </div>
+
+      <div class="ms-ex">
+        <span class="ms-ex-n">Exercise 02</span>
+        <h3>The same floor area takes very different forms once storeys change</h3>
+        <figure class="ms-fig">
+<svg viewBox="0 0 720 260" role="img" aria-label="Three massings holding total floor area constant. A full footprint at one storey, half the footprint at two storeys, and a quarter of the footprint at four storeys. The same floor area, three very different volumes.">
+  <text x="20" y="24" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11" fill="var(--ms-ink)">ELEVATION &#183; same total floor area, three forms</text>
+  <line x1="40" y1="200" x2="680" y2="200" stroke="var(--ms-ink)" stroke-width="1.5"/>
+  <!-- 1 storey, full footprint: 160 wide x 32 -->
+  <rect x="60" y="168" width="160" height="32" fill="var(--ms-surface2)" stroke="var(--ms-ink)" stroke-width="1.6"/>
+  <!-- 2 storeys, half footprint: 80 wide x 64 -->
+  <rect x="300" y="136" width="80" height="64" fill="var(--ms-surface2)" stroke="var(--ms-ink)" stroke-width="1.6"/>
+  <line x1="300" y1="168" x2="380" y2="168" stroke="var(--ms-ink3)" stroke-width="1"/>
+  <!-- 4 storeys, quarter footprint: 40 wide x 128 -->
+  <rect x="540" y="72" width="40" height="128" fill="var(--ms-surface2)" stroke="var(--ms-ink)" stroke-width="1.6"/>
+  <g stroke="var(--ms-ink3)" stroke-width="1">
+    <line x1="540" y1="104" x2="580" y2="104"/><line x1="540" y1="136" x2="580" y2="136"/><line x1="540" y1="168" x2="580" y2="168"/>
+  </g>
+  <g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10.5" fill="var(--ms-ink)">
+    <text x="60" y="222">1 storey</text><text x="300" y="222">2 storeys</text><text x="540" y="222">4 storeys</text>
+  </g>
+  <g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10" fill="var(--ms-ink3)">
+    <text x="60" y="236">full footprint</text><text x="300" y="236">half the footprint</text><text x="540" y="236">a quarter of it</text>
+  </g>
+  <text x="20" y="256" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10.5" fill="var(--ms-no)">The tool never computes any of these areas. That arithmetic is yours.</text>
+</svg>
+<figcaption>Elevation. Floor area is constant by construction; footprint and massing are not.</figcaption>
+        </figure>
+        <ol class="ms-steps">
+          <li>Draw a footprint and extrude it to one storey. Read its plan dimensions and compute
+            its area by hand with the shoelace formula &mdash; <b>the tool will not do this for
+            you</b>.</li>
+          <li>Redraw a second footprint at a quarter of the plan area, extruded to four storeys.
+            Compare the two volumes in the 3D view: their total floor area is the same by
+            construction, and their footprint and massing are not.</li>
+          <li>Try a third &mdash; half the footprint, two storeys &mdash; and see where it sits
+            between the other two.</li>
+        </ol>
+        <p class="ms-principle"><b>Principle.</b> Because the tool never computes or displays an
+          area, <b>comparing options by floor area is entirely your own arithmetic</b>. The tool's
+          job is to make the volumes visible once you have decided what to compare.</p>
+      </div>
+
+      <div class="ms-ex">
+        <span class="ms-ex-n">Exercise 03</span>
+        <h3>A massing exported as .obj becomes another tool's input</h3>
+        <figure class="ms-fig">
+<svg viewBox="0 0 720 220" role="img" aria-label="The OBJ handoff. Massing Studio exports geometry only, dropping colour and layer, and the file cannot be re-imported as editable shapes. Solar Analysis Lab and 3D Wind Rose both read that geometry and compute things Massing Studio cannot.">
+  <text x="20" y="26" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="11" fill="var(--ms-ink)">THE HANDOFF &#183; what travels, and what does not</text>
+  <defs>
+    <marker id="ms-f3-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--ms-accent)"/></marker>
+  </defs>
+  <rect x="30" y="76" width="150" height="54" fill="var(--ms-surface2)" stroke="var(--ms-ink)" stroke-width="1.6"/>
+  <text x="44" y="100" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10.5" fill="var(--ms-ink)">Massing Studio</text>
+  <text x="44" y="116" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="9.5" fill="var(--ms-ink3)">plan &#8594; volume</text>
+  <line x1="182" y1="103" x2="288" y2="103" stroke="var(--ms-accent)" stroke-width="2" marker-end="url(#ms-f3-a)"/>
+  <text x="196" y="96" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10" fill="var(--ms-accent)">.obj</text>
+  <rect x="300" y="46" width="180" height="48" fill="var(--ms-surface)" stroke="var(--ms-ok)" stroke-width="1.6"/>
+  <text x="312" y="66" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10" fill="var(--ms-ok)">travels: geometry</text>
+  <text x="312" y="82" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="9.5" fill="var(--ms-ink3)">vertices and faces only</text>
+  <rect x="300" y="110" width="180" height="62" fill="var(--ms-surface)" stroke="var(--ms-no)" stroke-width="1.6"/>
+  <text x="312" y="130" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10" fill="var(--ms-no)">does not travel</text>
+  <text x="312" y="146" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="9.5" fill="var(--ms-ink3)">colour &#183; layer &#183; editability</text>
+  <text x="312" y="162" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="9.5" fill="var(--ms-ink3)">it cannot come back as shapes</text>
+  <g stroke="var(--ms-accent)" stroke-width="2" marker-end="url(#ms-f3-a)">
+    <line x1="490" y1="66" x2="546" y2="66"/><line x1="490" y1="140" x2="546" y2="140"/>
+  </g>
+  <rect x="556" y="44" width="140" height="44" fill="var(--ms-surface2)" stroke="var(--ms-ink)" stroke-width="1.6"/>
+  <text x="566" y="70" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10" fill="var(--ms-ink)">Solar Analysis Lab</text>
+  <rect x="556" y="118" width="140" height="44" fill="var(--ms-surface2)" stroke="var(--ms-ink)" stroke-width="1.6"/>
+  <text x="566" y="144" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10" fill="var(--ms-ink)">3D Wind Rose</text>
+  <text x="20" y="200" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="10.5" fill="var(--ms-ink)">This tool makes the geometry. Those tools ask the questions of it.</text>
+</svg>
+<figcaption>The .obj export exists for exactly this handoff.</figcaption>
+        </figure>
+        <ol class="ms-steps">
+          <li>Build a simple massing study &mdash; a footprint or two, extruded to a few
+            storeys.</li>
+          <li>Export it as <span class="ms-mono">.obj</span>. Geometry only travels: no colour, no
+            layer, and it cannot come back as editable shapes.</li>
+          <li>Import that file into <b>Solar Analysis Lab</b> or <b>3D Wind Rose</b>, both of which
+            read the same format.</li>
+          <li>Note what each tool then does with the geometry that Massing Studio itself has no way
+            to compute.</li>
+        </ol>
+        <p class="ms-principle"><b>Principle.</b> This is the strongest argument for where Massing
+          Studio sits in the set: <b>it is not the tool that answers a solar or wind question, it
+          is the tool that produces the geometry those questions are asked of.</b></p>
+      </div>
+
+      <p class="ms-note"><b>A caution for all three: read the model, not a number the tool never
+        gives you.</b> Where a figure matters, compute it yourself and say how.</p>
+    </div>
+  </section>
+
+  <section class="ms-sec">
+    <div class="ms-sechead"><span class="ms-secnum"></span><h2>Where it stops</h2></div>
+    <div class="ms-secbody">
+      <p>The tool is built to teach the relationship between a plan and a volume &mdash; a fast way
+        to test a footprint and a few storeys against each other before opening something heavier.
+        Move to SketchUp, Rhino or a BIM package the moment you need materials, assemblies, or an
+        answer that has to be checked rather than sketched. <b>It contains no analysis of any kind,
+        deliberately, so that what it does do stays legible</b> &mdash; and it has no test suite of
+        its own, so nothing in it has been checked against itself.</p>
+    </div>
+  </section>
+
+  <div class="ms-footer">
+
+    <h3>Licence</h3>
+    <p>&copy; Karam Al-Obaidi. The app is licensed <b>MIT</b>; this documentation is
+      <b><a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a></b>.
+      Both permit any use, including commercial, and ask only that you credit the author. The tool
+      bundles <a href="https://threejs.org" target="_blank" rel="noopener">three.js r160</a> (also
+      MIT) with four addons from the same release; the full notice travels inside the application
+      file's own header.</p>
+    <p><b>No module in the application's own source makes a network request of any kind.</b>
+      three.js itself bundles generic loader code capable of one, for features this application
+      never calls.</p>
+    <p>A building you make with the tool is <b>yours</b>. Neither licence claims anything over your
+      model, your drawings or the images you export.</p>
+
+    <h3 id="how-to-cite" style="scroll-margin-top:100px;">How to cite</h3>
+    <p>Cite it as software. Keeping the copyright notice in the file satisfies the licence; a
+      citation is the scholarly act on top of that.</p>
+    <p class="ms-ref">Al-Obaidi, K. M. (2026). <i>Massing Studio: A browser-based plan drawing and
+      extrusion tool</i> (Version 1.0.0) [Computer software]. Zenodo.
+      <a href="https://doi.org/10.5281/zenodo.22814302" target="_blank" rel="noopener">https://doi.org/10.5281/zenodo.22814302</a></p>
+<pre>@software{alobaidi2026massingstudio,
+  author    = {Al-Obaidi, Karam M.},
+  title     = {Massing Studio: A browser-based plan drawing
+               and extrusion tool},
+  year      = {2026},
+  version   = {1.0.0},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.22814302},
+  url       = {https://karam.me.uk/applications/massing-studio/},
+  note      = {Code MIT licensed; accompanying material CC BY 4.0}
+}</pre>
+    <p>That DOI names this release. To cite the software in general rather than version 1.0.0, use
+      the concept DOI
+      <a href="https://doi.org/10.5281/zenodo.22814301" target="_blank" rel="noopener">10.5281/zenodo.22814301</a>,
+      which always resolves to the newest version.</p>
+    <p><b>Report the grid size and whether Snap was on</b> alongside any quoted figure, and say
+      whether the shape in question was <b>moved or scaled after it was drawn</b> &mdash; that
+      changes whether the coordinates are still multiples of the grid at all.</p>
+
+    <h3>References</h3>
+    <p><b>What the code itself names, and nothing else</b> &mdash; which here is one entry. The
+      source's own vendored licence file names three.js and its four addons; nothing else in the
+      application cites an external work. The DXF entity types are the format's own vocabulary, and
+      the shoelace formula is named in a comment but attributed to no one, so neither has an entry
+      below.</p>
+
+    <h4>Named in the application</h4>
+    <p class="ms-ref">Three.js authors. (2023). <i>three.js</i> (r160) [Computer software]. MIT
+      licensed.
+      <span style="color:var(--ms-ink3)">&mdash; the 3D engine the application is built on, with
+      its OrbitControls, OBJExporter, OBJLoader and STLExporter addons from the same release, all
+      named in the source's own vendored licence file.</span></p>
+
+    <h4>Further reading &mdash; not named by the code</h4>
+    <p class="ms-ref">Ching, F. D. K. &amp; Shapiro, I. M. (2021). <i>Green building illustrated</i>
+      (2nd edn). Wiley.
+      <span style="color:var(--ms-ink3)">&mdash; an accessible starting point for the daylight and
+      massing principles the exercises ask you to reason about by hand. Nothing on this page rests
+      on it.</span></p>
+
+  </div>
+
+</div>
