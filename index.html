@@ -58,7 +58,7 @@
           <div class="dropdown-menu" id="export-menu" role="menu">
             <button class="dropdown-item" id="btn-export-obj" role="menuitem" title="Export extruded solids as .obj">Export .OBJ</button>
             <button class="dropdown-item" id="btn-export-stl" role="menuitem" title="Export extruded solids as a binary .stl (3D printing)">Export .STL</button>
-            <button class="dropdown-item" id="btn-export-png" role="menuitem" title="Export the current 3D view as an image">Export .PNG</button>
+            <button class="dropdown-item" id="btn-export-image" role="menuitem" title="Export the 3D view as a high-resolution PNG or JPEG — transparent or white background">Export Image (PNG / JPEG)…</button>
             <button class="dropdown-item" id="btn-export-dxf" role="menuitem" title="Export the 2D plan as a DXF drawing">Export .DXF</button>
           </div>
         </div>
@@ -92,7 +92,13 @@
         <button class="btn" data-tool="rect" title="Rectangle (R)">Rectangle</button>
         <button class="btn" data-tool="circle" title="Circle (C)">Circle</button>
         <button class="btn" data-tool="polygon" title="Polygon — click points, Enter/double-click to close (P)">Polygon</button>
+        <button class="btn" data-tool="spline" title="Curve — click control points of a smooth spline, Enter/double-click to close (S)">Curve</button>
         <button class="btn" data-tool="pushpull" title="Push / Pull — drag a shape's top face in the 3D view to extrude (E)">Push/Pull</button>
+      </div>
+
+      <div class="tool-group" role="group" aria-label="Measure">
+        <button class="btn" data-tool="dimension" title="Dimension — click two points, then click to place the line (D). Works in the plan and on the 3D model">Dimension</button>
+        <button class="btn" data-tool="area" title="Area — click the corners of an area to measure it, Enter/double-click to close (A)">Area</button>
       </div>
 
       <div class="tool-group" role="group" aria-label="Grid">
@@ -100,6 +106,16 @@
         <label class="num-inline">Grid
           <input id="grid-size" type="number" step="0.1" min="0.1" value="1" />m
         </label>
+        <div class="dropdown" id="display-dropdown">
+          <button id="btn-display-toggle" class="btn" title="Display options" aria-haspopup="true" aria-expanded="false">View ▾</button>
+          <div class="dropdown-menu" id="display-menu" role="menu">
+            <label class="dropdown-check"><input type="checkbox" data-display="edges" /> Edges on volumes</label>
+            <label class="dropdown-check"><input type="checkbox" data-display="xray" /> X-ray (see-through)</label>
+            <label class="dropdown-check"><input type="checkbox" data-display="areaLabels" /> Area labels in plan</label>
+            <label class="dropdown-check"><input type="checkbox" data-display="dims" /> Dimensions &amp; areas</label>
+            <label class="dropdown-check"><input type="checkbox" data-display="levelLines" /> Level lines (always)</label>
+          </div>
+        </div>
       </div>
     </div>
   </header>
@@ -107,13 +123,18 @@
   <div id="workspace" data-view="split">
     <aside id="sidebar">
       <div id="properties-panel" class="panel"></div>
+      <div id="levels-panel" class="panel"></div>
       <div id="imported-panel" class="panel" style="display:none;"></div>
       <div class="panel" id="help-panel">
         <div class="panel-header"><span>Quick Reference</span></div>
         <ul class="help-list">
           <li><b>Draw:</b> pick a tool, click in the plan view</li>
-          <li><b>Polygon:</b> click each vertex, Enter / double-click / click near start to close</li>
+          <li><b>Polygon / Curve:</b> click each point, Enter / double-click / click near start to close</li>
+          <li><b>Select:</b> Shift+click or drag a box to select several; drag round handles to edit points</li>
           <li><b>Extrude:</b> set a height in Properties, or use Push/Pull in the 3D view — drag the top face for height, any side wall to move just that wall</li>
+          <li><b>Levels:</b> add levels to stack floors; "Stack copy on top" in Properties; Alt+drag a volume in 3D to lift it</li>
+          <li><b>Measure:</b> Dimension (D) in plan or on the 3D model, Area (A) in plan</li>
+          <li><b>Boolean:</b> select two volumes → Intersect / Union / Subtract in Properties</li>
           <li><b>Import:</b> .obj as a 3D reference, .dxf as editable shapes, or an image to trace over</li>
           <li><b>Copy / Cut / Paste:</b> Ctrl+C / Ctrl+X / Ctrl+V, or the toolbar menu next to Undo/Redo</li>
           <li><b>Pan:</b> space+drag or middle-mouse · <b>Zoom:</b> scroll</li>
@@ -126,17 +147,21 @@
     <main id="viewport-split">
       <section id="pane-2d" class="pane">
         <canvas id="canvas2d"></canvas>
-        <div class="pane-label">PLAN VIEW — 2D</div>
+        <div class="pane-label" id="plan-label">PLAN VIEW — 2D</div>
       </section>
 
       <section id="pane-3d" class="pane">
         <canvas id="canvas3d"></canvas>
         <div class="pane-label">MODEL — 3D</div>
         <div class="cam-buttons">
-          <button id="cam-top" class="icon-btn small" title="Top view">Top</button>
-          <button id="cam-front" class="icon-btn small" title="Front view">Front</button>
-          <button id="cam-iso" class="icon-btn small" title="Isometric view">Iso</button>
+          <button id="cam-top" class="icon-btn small" title="Top view (orthographic plan)">Top</button>
+          <button id="cam-front" class="icon-btn small" title="Front elevation (orthographic, looking north)">Front</button>
+          <button id="cam-back" class="icon-btn small" title="Back elevation (orthographic, looking south)">Back</button>
+          <button id="cam-left" class="icon-btn small" title="Left elevation (orthographic, looking east)">Left</button>
+          <button id="cam-right" class="icon-btn small" title="Right elevation (orthographic, looking west)">Right</button>
+          <button id="cam-iso" class="icon-btn small" title="Isometric view (perspective)">Iso</button>
           <button id="cam-fit" class="icon-btn small" title="Frame all (F)">Fit</button>
+          <button id="cam-proj" class="icon-btn small" title="Toggle perspective / orthographic (O)">Persp</button>
         </div>
       </section>
     </main>
@@ -154,6 +179,58 @@
     <span class="units-label">units: meters</span>
   </footer>
 
+  <dialog id="export-dialog" class="modal">
+    <form method="dialog" class="modal-body" id="export-form">
+      <div class="modal-title">Export image</div>
+      <label class="props-row">
+        <span>Format</span>
+        <select id="exp-format">
+          <option value="png">PNG</option>
+          <option value="jpeg">JPEG</option>
+        </select>
+      </label>
+      <label class="props-row">
+        <span>Background</span>
+        <select id="exp-bg">
+          <option value="transparent">Transparent</option>
+          <option value="white" selected>White</option>
+          <option value="dark">Dark (as on screen)</option>
+        </select>
+      </label>
+      <label class="props-row">
+        <span>Size</span>
+        <select id="exp-size">
+          <option value="1">1× view</option>
+          <option value="2">2× view</option>
+          <option value="4" selected>4× view (print)</option>
+          <option value="custom">Custom width…</option>
+        </select>
+      </label>
+      <label class="props-row" id="exp-custom-row" hidden>
+        <span>Width (px)</span>
+        <input id="exp-width" type="number" min="200" max="16384" step="100" value="6000" />
+      </label>
+      <label class="props-row">
+        <span>Style</span>
+        <select id="exp-style">
+          <option value="shown">As shown</option>
+          <option value="translucent" selected>Translucent massing</option>
+        </select>
+      </label>
+      <label class="chk"><input id="exp-hide-helpers" type="checkbox" checked /> Hide grid &amp; ground</label>
+      <label class="chk"><input id="exp-shadow" type="checkbox" /> Soft ground shadow</label>
+      <label class="chk"><input id="exp-annotations" type="checkbox" /> Include dimensions &amp; areas</label>
+      <div class="panel-hint" id="exp-size-hint"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="exp-cancel">Cancel</button>
+        <button type="submit" class="btn primary" id="exp-go">Export</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- polygon-clipping ships as a UMD bundle, not an ES module — loaded as
+       a classic script so it's on window.polygonClipping for booleans.js. -->
+  <script src="vendor/polygon-clipping/polygon-clipping.umd.js"></script>
   <script type="importmap">
     { "imports": { "three": "./vendor/three/three.module.js" } }
   </script>
