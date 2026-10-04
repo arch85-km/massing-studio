@@ -62,7 +62,6 @@ cat >> "$OUT" <<'HTMLHEAD2'
   <meta name="description" content="Massing Studio — a browser-based plan drawing and extrusion tool." />
   <meta name="version" content="1.1.0" />
   <meta name="date" content="2026-09-26" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230d1117'/%3E%3Cpath d='M20 70 L20 30 L50 15 L80 30 L80 70 L50 85 Z' fill='none' stroke='%234fa3ff' stroke-width='6'/%3E%3Cpath d='M20 30 L50 45 L80 30 M50 45 L50 85' fill='none' stroke='%234fa3ff' stroke-width='6'/%3E%3C/svg%3E" />
   <style>
 HTMLHEAD2
 
