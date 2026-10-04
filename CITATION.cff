@@ -11,7 +11,10 @@ identifiers:
     description: "Concept DOI — always resolves to the latest version"
   - type: doi
     value: 10.5281/zenodo.22982508
-    description: "Version DOI — 1.1.0; 1.2.0's is minted when this release is archived"
+    description: "Version DOI — 1.1.0"
+  - type: doi
+    value: 10.5281/zenodo.23143500
+    description: "Version DOI — 1.2.0; cite this when quoting a figure"
 abstract: >-
   A lightweight, browser-based tool for sketching 2D plans and extruding
   them into 3D massing models, built for architecture students who need to
