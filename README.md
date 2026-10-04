@@ -2,7 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22814301.svg)](https://doi.org/10.5281/zenodo.22814301)
 
-**v1.1.0 · 2026-09-26**
+**v1.2.0 · 2026-10-04**
 
 A lightweight, browser-based tool for **sketching 2D plans and extruding
 them into 3D massing models** — built for architecture students who need
