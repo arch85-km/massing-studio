@@ -175,7 +175,7 @@
   </div>
 
   <footer id="statusbar">
-    <span class="copyright">&copy; Karam Al-Obaidi</span>
+    <button type="button" class="copyright" id="about-open" title="Licence, credits and release">&copy; Karam Al-Obaidi</button>
     <span class="sep">·</span>
     <span id="status-tool">Select</span>
     <span class="sep">·</span>
@@ -185,6 +185,36 @@
     <span class="grow-spacer"></span>
     <span class="units-label">units: meters</span>
   </footer>
+
+  <dialog id="about-dialog" class="modal">
+    <form method="dialog" class="modal-body">
+      <div class="modal-title">Massing Studio</div>
+      <div class="about-sec">
+        <h4>This release</h4>
+        <p><b id="about-release">&mdash;</b> &mdash; the version of this file and the date it was
+          released. Quote it alongside any figure you publish: the tool has changed before, and two
+          runs of the same model on different releases can differ.</p>
+      </div>
+      <div class="about-sec">
+        <h4>Licence and credits</h4>
+        <p>&copy; Karam Al-Obaidi. The application is licensed <b>MIT</b> and the documentation
+          <b>CC BY 4.0</b> &mdash; use it, adapt it, build on it, for any purpose including
+          commercially. Credit is the only condition.</p>
+        <p>A model you make here is <b>yours</b>. Neither licence claims anything over your
+          geometry, your drawings or the files you export.</p>
+        <p>Built with <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> r160
+          and <a href="https://github.com/mfogel/polygon-clipping" target="_blank" rel="noopener">polygon-clipping</a>,
+          both MIT, bundled into this file with their licences, so the app runs with no network.</p>
+      </div>
+      <div class="about-sec">
+        <h4>How to cite</h4>
+        <pre class="about-cite" id="about-cite"></pre>
+      </div>
+      <div class="modal-actions">
+        <button type="submit" class="btn primary">Close</button>
+      </div>
+    </form>
+  </dialog>
 
   <dialog id="export-dialog" class="modal">
     <form method="dialog" class="modal-body" id="export-form">

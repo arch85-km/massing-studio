@@ -543,6 +543,31 @@ input[type="color"] {
      doesn't fit rather than clipping it. */
   .units-label { display: none; }
 }
+
+
+/* ---- About: licence, credits and which release this file is ------------ */
+#about-dialog .modal-body { max-width: 540px; }
+.about-sec { margin: 0 0 4px; }
+.about-sec h4 {
+  margin: 14px 0 6px; font-size: 10px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--accent);
+}
+.about-sec h4:first-child { margin-top: 0; }
+.about-sec p { margin: 0 0 8px; font-size: 12.5px; line-height: 1.55; color: var(--text-dim); }
+.about-sec b { color: var(--text); }
+.about-sec a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.about-sec a:hover { color: var(--text); }
+.about-cite {
+  margin: 0; padding: 9px 11px; white-space: pre-wrap;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px; line-height: 1.5; color: var(--text-dim);
+}
+button.copyright {
+  background: none; border: 0; padding: 0; font: inherit; color: inherit;
+  cursor: pointer;
+}
+button.copyright:hover { color: var(--text); }
   </style>
 </head>
 <body>
@@ -708,7 +733,7 @@ input[type="color"] {
   </div>
 
   <footer id="statusbar">
-    <span class="copyright">&copy; Karam Al-Obaidi</span>
+    <button type="button" class="copyright" id="about-open" title="Licence, credits and release">&copy; Karam Al-Obaidi</button>
     <span class="sep">·</span>
     <span id="status-tool">Select</span>
     <span class="sep">·</span>
@@ -718,6 +743,36 @@ input[type="color"] {
     <span class="grow-spacer"></span>
     <span class="units-label">units: meters</span>
   </footer>
+
+  <dialog id="about-dialog" class="modal">
+    <form method="dialog" class="modal-body">
+      <div class="modal-title">Massing Studio</div>
+      <div class="about-sec">
+        <h4>This release</h4>
+        <p><b id="about-release">&mdash;</b> &mdash; the version of this file and the date it was
+          released. Quote it alongside any figure you publish: the tool has changed before, and two
+          runs of the same model on different releases can differ.</p>
+      </div>
+      <div class="about-sec">
+        <h4>Licence and credits</h4>
+        <p>&copy; Karam Al-Obaidi. The application is licensed <b>MIT</b> and the documentation
+          <b>CC BY 4.0</b> &mdash; use it, adapt it, build on it, for any purpose including
+          commercially. Credit is the only condition.</p>
+        <p>A model you make here is <b>yours</b>. Neither licence claims anything over your
+          geometry, your drawings or the files you export.</p>
+        <p>Built with <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> r160
+          and <a href="https://github.com/mfogel/polygon-clipping" target="_blank" rel="noopener">polygon-clipping</a>,
+          both MIT, bundled into this file with their licences, so the app runs with no network.</p>
+      </div>
+      <div class="about-sec">
+        <h4>How to cite</h4>
+        <pre class="about-cite" id="about-cite"></pre>
+      </div>
+      <div class="modal-actions">
+        <button type="submit" class="btn primary">Close</button>
+      </div>
+    </form>
+  </dialog>
 
   <dialog id="export-dialog" class="modal">
     <form method="dialog" class="modal-body" id="export-form">
@@ -63241,6 +63296,28 @@ document.getElementById('btn-export-obj').onclick = () => {
 // ---------------- image export dialog ----------------
 // The 3D view rendered at up to several times its on-screen size, on a
 // transparent, white or dark background — see Scene3D.exportImage.
+/* About: licence, credits and the release this file is. Version and date come
+   from the meta tags the build stamps, so the dialog cannot drift from them. */
+const aboutDialog = document.getElementById('about-dialog');
+{
+  const meta = n => (document.querySelector(`meta[name="${n}"]`) || {}).content || '';
+  const V = meta('version'), D = meta('date');
+  const MONTHS = ['January','February','March','April','May','June','July',
+                  'August','September','October','November','December'];
+  const p = D.split('-');
+  const long = p.length === 3
+    ? `${parseInt(p[2], 10)} ${MONTHS[parseInt(p[1], 10) - 1]} ${p[0]}` : D;
+  const rel = document.getElementById('about-release');
+  if (rel) rel.textContent = `${V} \u00b7 ${long}`;
+  const cite = document.getElementById('about-cite');
+  if (cite) cite.textContent =
+    'Al-Obaidi, K. M. (2026). Massing Studio: A browser-based plan\n' +
+    'drawing and extrusion tool (Version ' + V + ') [Computer software].\n' +
+    'Zenodo. https://doi.org/10.5281/zenodo.22814301';
+  const open = document.getElementById('about-open');
+  if (open && aboutDialog) open.addEventListener('click', () => aboutDialog.showModal());
+}
+
 const exportDialog = document.getElementById('export-dialog');
 const expFormat = document.getElementById('exp-format');
 const expBg = document.getElementById('exp-bg');

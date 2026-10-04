@@ -483,3 +483,28 @@ input[type="color"] {
      doesn't fit rather than clipping it. */
   .units-label { display: none; }
 }
+
+
+/* ---- About: licence, credits and which release this file is ------------ */
+#about-dialog .modal-body { max-width: 540px; }
+.about-sec { margin: 0 0 4px; }
+.about-sec h4 {
+  margin: 14px 0 6px; font-size: 10px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--accent);
+}
+.about-sec h4:first-child { margin-top: 0; }
+.about-sec p { margin: 0 0 8px; font-size: 12.5px; line-height: 1.55; color: var(--text-dim); }
+.about-sec b { color: var(--text); }
+.about-sec a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.about-sec a:hover { color: var(--text); }
+.about-cite {
+  margin: 0; padding: 9px 11px; white-space: pre-wrap;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px; line-height: 1.5; color: var(--text-dim);
+}
+button.copyright {
+  background: none; border: 0; padding: 0; font: inherit; color: inherit;
+  cursor: pointer;
+}
+button.copyright:hover { color: var(--text); }

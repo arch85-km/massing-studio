@@ -487,6 +487,28 @@ document.getElementById('btn-export-obj').onclick = () => {
 // ---------------- image export dialog ----------------
 // The 3D view rendered at up to several times its on-screen size, on a
 // transparent, white or dark background — see Scene3D.exportImage.
+/* About: licence, credits and the release this file is. Version and date come
+   from the meta tags the build stamps, so the dialog cannot drift from them. */
+const aboutDialog = document.getElementById('about-dialog');
+{
+  const meta = n => (document.querySelector(`meta[name="${n}"]`) || {}).content || '';
+  const V = meta('version'), D = meta('date');
+  const MONTHS = ['January','February','March','April','May','June','July',
+                  'August','September','October','November','December'];
+  const p = D.split('-');
+  const long = p.length === 3
+    ? `${parseInt(p[2], 10)} ${MONTHS[parseInt(p[1], 10) - 1]} ${p[0]}` : D;
+  const rel = document.getElementById('about-release');
+  if (rel) rel.textContent = `${V} \u00b7 ${long}`;
+  const cite = document.getElementById('about-cite');
+  if (cite) cite.textContent =
+    'Al-Obaidi, K. M. (2026). Massing Studio: A browser-based plan\n' +
+    'drawing and extrusion tool (Version ' + V + ') [Computer software].\n' +
+    'Zenodo. https://doi.org/10.5281/zenodo.22814301';
+  const open = document.getElementById('about-open');
+  if (open && aboutDialog) open.addEventListener('click', () => aboutDialog.showModal());
+}
+
 const exportDialog = document.getElementById('export-dialog');
 const expFormat = document.getElementById('exp-format');
 const expBg = document.getElementById('exp-bg');
