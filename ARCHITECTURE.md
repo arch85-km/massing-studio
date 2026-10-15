@@ -120,13 +120,14 @@ are missing, so the bundle cannot announce a version the source has moved
 past. Rebuild after any change to `index.html`, `css/` or `js/`, and commit
 both.
 
-`tools/check-release-metadata.mjs` (9 checks) holds `.zenodo.json` and
-`CITATION.cff` to the same version, and checks that both method notes pages
-name that version in their byline and cite a DOI that `CITATION.cff`
-declares: the version DOI once it is minted, the concept DOI until then. It
-does not read the version in `index.html` or any release date. There is no
-separate automated test suite: changes are checked by driving the built file
-in a browser.
+`tools/check-release-metadata.mjs` (15 checks) holds every version and date
+stamp to `CITATION.cff`: `.zenodo.json`; the version and date meta tags in
+`index.html`; the same pair in the built `dist/Massing-Studio.html`, so a
+build left behind after a bump fails; the README's `vX · date` stamp; and
+both method notes pages, whose bylines must name the version and the date
+spelled long, and whose citations must use the version DOI once it is minted
+and the concept DOI until then. There is no separate automated test suite:
+changes are checked by driving the built file in a browser.
 
 A release goes: bump every stamp, rebuild, run the guard, cut the tag, let
 Zenodo archive it, then record the new version DOI in a separate commit.

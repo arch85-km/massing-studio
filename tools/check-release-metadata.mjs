@@ -82,10 +82,60 @@ ok(`a version DOI for ${VERSION} ${releaseDoi ? 'is declared' : 'is not minted y
   true,
   releaseDoi || `documents cite the concept DOI ${conceptDoi} until Zenodo mints one`);
 
+/* --- the date that goes with it ----------------------------------------
+   Ported from Solar Analysis Lab, where 1.2.0 shipped with the old date in
+   its About panel: the version bumped and the date stayed behind, because no
+   check read the date at all. Here the version and date are declared once, in
+   index.html's meta tags; the build copies them into dist/, the notes spell
+   the date long in their bylines, and the README carries a short stamp.
+   Every one of those is a copy that can drift, so every one is checked. */
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+                'August', 'September', 'October', 'November', 'December'];
+const cffDate = cff
+  ? ((cff.match(/^date-released:[ \t]*"?(\d{4}-\d{2}-\d{2})"?/m) || [])[1] || null)
+  : null;
+const longDate = (iso) => {
+  const d = new Date(iso + 'T00:00:00Z');
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+};
+const meta = (html, name) =>
+  (html.match(new RegExp(`<meta name="${name}" content="([^"]+)"`)) || [])[1] || null;
+
+if (has('index.html')) {
+  const src = read('index.html');
+  ok("index.html's version agrees with CITATION.cff",
+    meta(src, 'version') === VERSION, `index.html ${meta(src, 'version')}, CITATION.cff ${VERSION}`);
+  if (cffDate) ok("index.html's date agrees with CITATION.cff",
+    meta(src, 'date') === cffDate, `index.html ${meta(src, 'date')}, CITATION.cff ${cffDate}`);
+
+  // The deliverable is the built file. A build left behind after a bump would
+  // announce the old release on the live site while every source file agrees.
+  if (has('dist/Massing-Studio.html')) {
+    const dist = read('dist/Massing-Studio.html');
+    ok('the built dist/Massing-Studio.html carries the same version and date',
+      meta(dist, 'version') === meta(src, 'version') && meta(dist, 'date') === meta(src, 'date'),
+      `dist ${meta(dist, 'version')} ${meta(dist, 'date')}, index.html ${meta(src, 'version')} ${meta(src, 'date')} - rebuild with scripts/build-standalone.sh`);
+  }
+}
+
+if (cffDate && has('README.md')) {
+  const stamp = (read('README.md').match(/^\*\*v([0-9][0-9.]*) · (\d{4}-\d{2}-\d{2})\*\*/m) || []);
+  ok("README's version stamp agrees with CITATION.cff",
+    stamp[1] === VERSION && stamp[2] === cffDate,
+    `README v${stamp[1]} · ${stamp[2]}, CITATION.cff v${VERSION} · ${cffDate}`);
+}
+
 for (const doc of docs) {
   const html = read(doc);
   const byline = (html.match(/Version<\/b>[^0-9]*([0-9][0-9.]*)/) || [])[1];
   ok(`${doc} byline names ${VERSION}`, byline === VERSION, `byline ${byline}`);
+
+  if (cffDate) {
+    const bylineDate = (html.match(/Version<\/b>[^0-9]*[0-9][0-9.]*\s*(?:&middot;|\u00b7)\s*([^<]+)/) || [])[1];
+    ok(`${doc} byline is dated ${longDate(cffDate)}`,
+      (bylineDate || '').trim() === longDate(cffDate),
+      `byline dated ${(bylineDate || '(none)').trim()}`);
+  }
 
   const bibDoi = (html.match(/doi\s*=\s*\{([^}]+)\}/) || [])[1];
   if (bibDoi) {
