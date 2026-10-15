@@ -64,6 +64,8 @@ Projects saved in 1.0.0 open in 1.1.0 unchanged.
 
 ## [1.0.0](https://github.com/arch85-km/massing-studio/releases/tag/v1.0.0) — 17 September 2026
 
+Version DOI [10.5281/zenodo.22814302](https://doi.org/10.5281/zenodo.22814302)
+
 First public release. Draw rectangles, circles, freeform polygons and
 reference lines on a snapping plan grid; extrude any closed shape, or push
 and pull it in 3D, wall by wall, edge by edge or by a circle's radius. Copy,
