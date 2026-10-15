@@ -195,6 +195,20 @@ massing-studio/
 - Units are meters throughout; the default grid is 1 m with a bold line
   every 5 m.
 
+## How this was developed
+
+I design the application: I define the problem and the scope, and choose the
+methods and the sources. I test it in use, find its bugs, and decide what is
+released and when. The code is written with an AI coding assistant working to my
+specification and direction: it writes most of the code, drafts the
+documentation for my review, diagnoses bugs and proposes fixes that I test, and
+writes and runs the release checks. I retain full intellectual responsibility
+for the design, the methods and the results, including any errors.
+
+The reasons behind the design are in [`DESIGN.md`](DESIGN.md), how the code is
+organised is in [`ARCHITECTURE.md`](ARCHITECTURE.md), and every release is in
+[`CHANGELOG.md`](CHANGELOG.md).
+
 ## License
 
 Massing Studio's own source code is licensed under the **MIT License**
