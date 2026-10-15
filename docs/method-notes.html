@@ -674,78 +674,6 @@ area = sum / 2</div>
     </div>
   </div>
 
-  <!-- 08 -->
-  <div class="ms-sec">
-    <div class="ms-sechead" id="ms-08"><span class="ms-secnum">08</span><h2>Three exercises</h2></div>
-    <div class="ms-secbody">
-      <p>Each isolates one variable and holds everything else fixed. Read the model, not the
-        picture.</p>
-
-      <div class="ms-ex">
-        <span class="ms-ex-n">Exercise 01</span>
-        <h3>Footprint depth governs how much of a room is daylit</h3>
-        <ol class="ms-steps">
-          <li>Draw a single rectangle 6 m wide. Set its height to one storey.</li>
-          <li>Extend its depth from 6 m to 18 m in three steps, pushing one side wall each time
-            — the tool's own push/pull, applied to one wall only. Check each depth with the
-            Dimension tool.</li>
-          <li>At each depth, mark by eye how far daylight from the 6 m face is likely to reach
-            into the plan — roughly twice the window head height is the usual rule of thumb,
-            applied here entirely outside the tool.</li>
-          <li>Note the depth beyond which the far end of the room falls outside that reach.</li>
-        </ol>
-        <p class="ms-principle"><b>Principle.</b> The tool has no daylight model of any kind —
-          trap 3 and the "Not modelled" ledger both say so. What it gives you is an exact
-          footprint to measure a rule of thumb against by hand, which is a different and more
-          honest use of the tool than expecting it to answer the question itself.</p>
-      </div>
-
-      <div class="ms-ex">
-        <span class="ms-ex-n">Exercise 02</span>
-        <h3>The same floor area takes very different forms once storeys change</h3>
-        <ol class="ms-steps">
-          <li>Draw a footprint and extrude it to one storey. Draw a rectangle or a polygon — a
-            circle is computed as &pi;r&sup2; rather than by shoelace, and a shape carrying holes
-            has them subtracted. Compute its area by hand, using the shoelace formula this page
-            names in section 01, and check your answer against the footprint area in the Properties
-            panel.</li>
-          <li>Add three levels. Draw a second footprint at a quarter of the plan area and stack
-            it four storeys high with "Stack copy on top" — one shape per storey.</li>
-          <li>Compare the two massing volumes in the 3D view and in the Front elevation. Their
-            total floor area is the same by construction; read the Levels panel to confirm it,
-            and note that their footprint and massing are not.</li>
-          <li>Now draw a third option as a single shape, half the footprint area and two storeys
-            tall. Note what the status bar's GFA says about it — and why.</li>
-        </ol>
-        <p class="ms-principle"><b>Principle.</b> The tool shows a footprint area, not a floor
-          area. Step 4 is trap 1 in action: a two-storey volume drawn as one shape counts once.
-          Checking the tool's number against your own arithmetic, and knowing what it sums, is
-          the habit this exercise builds.</p>
-      </div>
-
-      <div class="ms-ex">
-        <span class="ms-ex-n">Exercise 03</span>
-        <h3>A massing exported as .obj becomes another tool's input</h3>
-        <ol class="ms-steps">
-          <li>Build a simple massing study — a footprint or two, stacked over a few levels.</li>
-          <li>Save it with "Save as .obj" (section 03 above covers exactly what travels with it:
-            the geometry for other programs, and the whole project for this one).</li>
-          <li>Import that <span class="ms-mono">.obj</span> into Solar Analysis Lab or 3D Wind
-            Rose, both of which read the same format.</li>
-          <li>Note what each tool then does with the geometry that Massing Studio itself has no
-            way to compute.</li>
-        </ol>
-        <p class="ms-principle"><b>Principle.</b> This is the strongest argument for where
-          Massing Studio sits in the set: it is not the tool that answers a solar or wind
-          question, it is the tool that produces the geometry those questions are asked of. The
-          .obj export exists for exactly this handoff.</p>
-      </div>
-
-      <p class="ms-note">A caution for all three: read the model, and know what each number the
-        tool gives you actually adds up. Where a figure matters, check it yourself and say how.</p>
-    </div>
-  </div>
-
   <div class="ms-footer">
     <p>Everything on this page was read from the tool's source code. Where a claim could be
       checked against the code directly, it was; where the code did not make something clear,
@@ -823,7 +751,7 @@ area = sum / 2</div>
     <ul class="ms-refs">
       <li>Ching, F. D. K., &amp; Shapiro, I. M. (2021). <i>Green building illustrated</i> (2nd
         ed.). Wiley. &mdash; an accessible starting point for the daylight and massing
-        principles the exercises in section 08 ask a student to reason about by hand.</li>
+        principles behind an early massing study.</li>
       <li>Lawson, B. (2005). <i>How designers think: The design process demystified</i> (4th
         ed.). Architectural Press. &mdash; on early massing and iterative form-finding as a
         design activity, the territory this tool is built for.</li>
