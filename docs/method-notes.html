@@ -192,6 +192,86 @@
 @media (prefers-reduced-motion:reduce){
   .ms-doc *{animation-duration:.01ms !important;transition-duration:.01ms !important;}
 }
+
+/* ---- Site style ---------------------------------------------------------
+   The rules above are the page's own design system. This block sets it in
+   karam.me.uk's style instead: its palette and red, Poppins headings and
+   labels over Source Serif 4 body text, hairlines rather than boxes, and
+   section titles set as small labels over a hairline, as the applications
+   page sets its tiers ("01 SET UP"). The site has no dark mode, so neither
+   has this page. Monospace is kept for formulas and code only. */
+.ms-doc,
+.ms-doc.ms-auto-dark{
+  --ms-paper:transparent; --ms-surface:#f4f6f9; --ms-surface2:#eceef1;
+  --ms-ink:#12161d; --ms-ink2:#4e5765; --ms-ink3:#5f6875;
+  --ms-rule:rgba(10,12,16,.16); --ms-rule2:rgba(10,12,16,.07);
+  --ms-accent:#b41f1f; --ms-accent-soft:rgba(180,31,31,.07);
+  --ms-ok:#2f6b3f; --ms-ok-soft:transparent;
+  --ms-warn:#8a6410; --ms-warn-soft:transparent;
+  --ms-no:#b41f1f; --ms-no-soft:transparent;
+  --ms-fd:"Poppins",system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --ms-fb:"Source Serif 4",Georgia,serif;
+  --ms-fl:"Poppins",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  .ms-doc.ms-auto-dark{
+    --ms-paper:transparent; --ms-surface:#f4f6f9; --ms-surface2:#eceef1;
+    --ms-ink:#333; --ms-ink2:#333; --ms-ink3:#5f6875;
+    --ms-rule:rgba(10,12,16,.16); --ms-rule2:rgba(10,12,16,.07);
+    --ms-accent:#b41f1f; --ms-accent-soft:rgba(180,31,31,.07);
+    --ms-ok:#2f6b3f; --ms-ok-soft:transparent;
+    --ms-warn:#8a6410; --ms-warn-soft:transparent;
+    --ms-no:#b41f1f; --ms-no-soft:transparent;
+  }
+}
+.ms-doc{line-height:1.6;}
+/* labels: small uppercase Poppins, not monospace */
+.ms-doc .ms-eyebrow,.ms-doc .ms-byline,.ms-doc .ms-secnum,.ms-doc h4,.ms-doc .ms-chip,
+.ms-doc .ms-ex-n,.ms-doc .ms-fig figcaption,.ms-doc .ms-tbl thead th,.ms-doc .ms-cite{
+  font-family:var(--ms-fl) !important;}
+.ms-doc .ms-eyebrow{font-size:.72rem;font-weight:500;letter-spacing:.07em;}
+.ms-doc .ms-byline{font-size:.78rem;letter-spacing:0;}
+.ms-doc h4,.ms-doc .ms-tbl thead th{font-weight:500;letter-spacing:.07em;}
+.ms-doc .ms-chip{background:none !important;padding:0;font-weight:500;letter-spacing:.07em;}
+.ms-doc .ms-fig figcaption{text-transform:none;letter-spacing:0;font-size:.8rem;}
+.ms-doc .ms-tbl .ms-n,.ms-doc .ms-tbl .ms-d,.ms-doc .ms-tbl .ms-p{
+  font-family:var(--ms-fb);font-variant-numeric:tabular-nums;}
+.ms-doc h1,.ms-doc h3,.ms-doc .ms-ledger dt{font-weight:500;letter-spacing:-.01em;}
+/* hairlines, not boxes or heavy rules */
+.ms-doc .ms-masthead{border-bottom:1px solid var(--ms-rule);}
+.ms-doc .ms-footer{border-top:1px solid var(--ms-rule);}
+.ms-doc .ms-traps{border:0;background:none;padding:0;}
+.ms-doc .ms-traps h2{font-weight:500;letter-spacing:.07em;color:var(--ms-ink);}
+.ms-doc .ms-ex{border:0;border-top:1px solid var(--ms-rule);background:none;padding:1.3rem 0 0;}
+.ms-doc .ms-ledger{border:0;background:none;}
+.ms-doc .ms-ledger>div{padding:.8rem 0;}
+.ms-doc .ms-tbl{border:0;}
+.ms-doc code{background:var(--ms-surface);color:var(--ms-ink);}
+.ms-doc .ms-fig svg{border:0;background:var(--ms-surface);}
+/* section titles as tier labels: number, title, hairline */
+.ms-doc .ms-sec{padding-top:2.2rem;}
+.ms-doc .ms-sechead{display:flex;gap:10px;align-items:baseline;border-top:0;
+  border-bottom:1px solid var(--ms-rule);padding:0 0 7px;margin-bottom:1.3rem;}
+.ms-doc .ms-secnum{font-size:.72rem;font-weight:600;color:var(--ms-ink);letter-spacing:.04em;}
+.ms-doc .ms-sechead h2{font-family:var(--ms-fl);font-size:.72rem;font-weight:500;
+  letter-spacing:.07em;text-transform:uppercase;line-height:1.4;color:var(--ms-ink3);}
+.ms-doc .ms-secbody{display:block;}
+.ms-doc .ms-secnum:empty{display:none;}
+/* long addresses in the references break rather than push the page sideways on a phone */
+.ms-doc a{overflow-wrap:anywhere;}
+/* text runs the full width of the column, as the exercises do */
+.ms-doc,.ms-doc.ms-auto-dark{--ms-measure:none;}
+/* the title and text as the site's own page headings and body set them */
+.ms-doc,.ms-doc.ms-auto-dark{--ms-ink:#333;--ms-ink2:#333;}
+.ms-doc h1,.ms-doc .ms-title{font-size:2em;font-weight:600;line-height:1.15;letter-spacing:0;color:#333;}
+.ms-doc .ms-standfirst{color:#333;}
+/* each ledger item reads as one block: its tag above its title, not in a side column */
+.ms-doc .ms-ledger>div{grid-template-columns:minmax(0,1fr);}
+.ms-doc .ms-ledger .ms-chip{grid-row:auto;grid-column:1;justify-self:start;margin:0 0 .25rem;}
+.ms-doc .ms-ledger dt,.ms-doc .ms-ledger dd{grid-column:1;}
+/* inline interface terms and figure labels in Poppins too; <code> and formulas stay monospace */
+.ms-doc .ms-mono{font-family:var(--ms-fl);font-size:.9em;}
+.ms-doc .ms-fig svg text{font-family:var(--ms-fl);}
 </style>
 
 <div class="ms-doc">
