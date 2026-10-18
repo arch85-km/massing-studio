@@ -285,25 +285,27 @@
 @media (min-width:1280px){.ms-doc .ms-secnum{font-size:1.14rem;}}
 /* on the app's page the title sits under the app's own heading, so it names only the notes */
 .ms-doc h1,.ms-doc .ms-title{font-size:1.5em;}
-/* light grey panels: the three warnings, then every other section. The exercises always stay
-   white, so their figures keep their own grey and are not a box inside a box. The panels are
+/* light grey panels: the warnings, then every other section. The exercises always stay
+   white (marked ms-sec-ex in the markup), so their figures keep their own grey and are not a
+   box inside a box. The section part is wrapped in :is(), so a browser that cannot read it
+   drops only that part and still draws the warnings panel. The panels are
    there so a long page reads in steps. Each panel reaches a little into the margin, so its
    text stays in line with the rest; on a phone, where there is no margin to spare, it stays
    inside the column. */
-.ms-doc .ms-traps,.ms-doc .ms-sec:not(:has(.ms-ex)):nth-child(even of .ms-sec){background:var(--ms-surface);border:0;border-radius:4px;
+.ms-doc .ms-traps,.ms-doc :is(.ms-sec:not(.ms-sec-ex):nth-child(even of .ms-sec)){background:var(--ms-surface);border:0;border-radius:4px;
   margin-left:-1.25rem;margin-right:-1.25rem;padding:1.4rem 1.25rem 1.1rem;}
 /* the same space before every section heading, white or grey: 2rem between sections and
    1.4rem above the heading inside each */
-.ms-doc .ms-traps,.ms-doc .ms-sec:not(:has(.ms-ex)):nth-child(even of .ms-sec){margin-top:2rem;margin-bottom:2rem;}
+.ms-doc .ms-traps,.ms-doc .ms-sec{margin-top:2rem;margin-bottom:2rem;}
 .ms-doc .ms-traps,.ms-doc .ms-sec{padding-top:1.4rem;}
 /* and no extra space at the foot of a panel */
-.ms-doc .ms-traps > :last-child,.ms-doc .ms-sec:not(:has(.ms-ex)):nth-child(even of .ms-sec) .ms-secbody > :last-child{margin-bottom:0;}
-.ms-doc .ms-traps h2,.ms-doc .ms-sec:not(:has(.ms-ex)):nth-child(even of .ms-sec) .ms-sechead{border-bottom-color:rgba(10,12,16,.12);}
+.ms-doc .ms-traps > :last-child,.ms-doc :is(.ms-sec:not(.ms-sec-ex):nth-child(even of .ms-sec)) .ms-secbody > :last-child{margin-bottom:0;}
+.ms-doc .ms-traps h2,.ms-doc :is(.ms-sec:not(.ms-sec-ex):nth-child(even of .ms-sec)) .ms-sechead{border-bottom-color:rgba(10,12,16,.12);}
 /* what already sits on grey turns white inside a grey panel, so it still stands out */
-.ms-doc .ms-sec:not(:has(.ms-ex)):nth-child(even of .ms-sec) .ms-tbl,.ms-doc .ms-sec:not(:has(.ms-ex)):nth-child(even of .ms-sec) .ms-formula,
-.ms-doc .ms-sec:not(:has(.ms-ex)):nth-child(even of .ms-sec) .ms-fig svg,.ms-doc .ms-sec:not(:has(.ms-ex)):nth-child(even of .ms-sec) code{background:#fff;}
+.ms-doc .ms-sec:not(.ms-sec-ex):nth-child(even of .ms-sec) .ms-tbl,.ms-doc .ms-sec:not(.ms-sec-ex):nth-child(even of .ms-sec) .ms-formula,
+.ms-doc .ms-sec:not(.ms-sec-ex):nth-child(even of .ms-sec) .ms-fig svg,.ms-doc .ms-sec:not(.ms-sec-ex):nth-child(even of .ms-sec) code{background:#fff;}
 @media (max-width:700px){
-  .ms-doc .ms-traps,.ms-doc .ms-sec:not(:has(.ms-ex)):nth-child(even of .ms-sec){margin-left:0;margin-right:0;padding-left:.9rem;padding-right:.9rem;}
+  .ms-doc .ms-traps,.ms-doc :is(.ms-sec:not(.ms-sec-ex):nth-child(even of .ms-sec)){margin-left:0;margin-right:0;padding-left:.9rem;padding-right:.9rem;}
 }
 </style>
 
